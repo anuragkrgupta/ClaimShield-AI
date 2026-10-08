@@ -1,0 +1,1885 @@
+from pathlib import Path
+import zipfile, textwrap, os
+
+base = Path("/mnt/data/adrosonic_fraud_detection_project_docs")
+base.mkdir(parents=True, exist_ok=True)
+
+docs = {}
+
+docs["00-MASTER-PLAN.md"] = r"""# AI-Powered Synthetic Identity & Deepfake Claim Detection System
+## Master Project Blueprint
+
+> Purpose: This document set preserves the complete plan for adapting the existing `SIH-2026-26188-VerifAI` repository into a solution aligned with the Adrosonic Build problem statement: **AI-Powered Synthetic Identity & Deepfake Claim Detection System**.
+
+## 1. Source of truth
+
+Primary problem statement:
+- Adrosonic Build — *AI-Powered Synthetic Identity & Deepfake Claim Detection System*
+- 24-hour hackathon
+- Team size: 2–4
+- Pre-trained models allowed
+- Working UI required
+
+The challenge asks for a working prototype that analyzes uploaded images/documents, flags potentially synthetic/manipulated content, produces risk scoring, and explains why a case was flagged.
+
+Core requirements:
+1. Image manipulation detection — MUST HAVE
+2. Document tampering detection — MUST HAVE
+3. Risk scoring and explainability — MUST HAVE
+4. Demo upload/results UI — MUST HAVE
+5. Identity comparison — BONUS
+
+## 2. Starting point
+
+Reference repository:
+
+`https://github.com/Anupkrmi/SIH-2026-26188-VerifAI`
+
+Current assessment:
+- Approximate problem alignment before modification: **7/10**
+- Strongest reusable areas: document screening, forensic analysis, evidence fusion, explainability, face comparison, Streamlit workflow.
+- Largest gaps: dedicated AI/deepfake image detection, insurance-claim workflow, generic claim/evidence consistency.
+
+## 3. Target
+
+Target alignment after focused modification:
+- **9–9.5/10** conceptually, assuming the new AI image detector works reliably on representative data and the final workflow is demonstrable.
+
+This is a target, not a measured benchmark.
+
+## 4. Target product
+
+```text
+Insurance Claim
+      |
+      +-- Accident / vehicle images
+      +-- Identity documents
+      +-- Medical reports
+      +-- Claim forms
+      +-- Invoices / repair estimates
+      |
+      v
+Evidence Analysis
+      |
+      +-- AI/deepfake image detector
+      +-- Image forensics
+      +-- OCR
+      +-- Document tampering checks
+      +-- Metadata checks
+      +-- Cross-document consistency
+      +-- Identity comparison
+      |
+      v
+Evidence Fusion / Risk Engine
+      |
+      +-- Image Authenticity Score
+      +-- Document Authenticity Score
+      +-- Claim Consistency Score
+      +-- Identity result
+      +-- Overall Fraud Likelihood
+      |
+      v
+Explainable Investigation Result
+```
+
+## 5. Golden implementation rule
+
+**Do not rebuild working functionality unnecessarily.**
+
+Use the reference repository as a foundation:
+- keep useful generic components;
+- adapt tightly coupled passport-specific components;
+- add only the missing insurance/deepfake capabilities;
+- remove dead code only after the new pipeline works.
+
+## 6. MVP
+
+The minimum successful product should support:
+
+### Image
+- Upload image
+- AI-generated/manipulated image detection
+- Confidence
+- ELA / forensic indicators
+- Optional suspicious-region visualization
+
+### Document
+- Upload PDF/image
+- OCR
+- Metadata analysis
+- Tampering indicators
+- Field extraction
+- Suspicious-field reasons
+
+### Risk
+- Image authenticity score
+- Document authenticity score
+- Overall fraud likelihood
+- Low/Medium/High result
+- Plain-English explanation
+
+### UI
+- Claim creation/upload
+- Analyze button
+- Results dashboard
+- Evidence details
+- Explainability
+
+## 7. Optional / bonus
+
+- Face comparison between ID and selfie
+- Cross-document identity consistency
+- Claim amount consistency
+- Date consistency
+- Image metadata versus claimed accident timeline
+- Synthetic/tampered sample generation
+- Suspicious-region heatmap
+
+## 8. Explicit non-goals
+
+Do not introduce:
+- microservices
+- Kubernetes
+- Kafka
+- Redis
+- complex authentication
+- blockchain
+- real insurance API integrations
+- production-grade enterprise database
+- custom deepfake model training from scratch unless absolutely necessary
+- LLM agents for tasks that deterministic code can handle
+- unnecessary abstraction layers
+
+## 9. Development sequence
+
+1. Clone and run VerifAI unchanged.
+2. Freeze a known-working baseline.
+3. Map dependencies.
+4. Separate generic functionality from passport-specific functionality.
+5. Create claim/evidence data model.
+6. Add dedicated AI/deepfake image detector.
+7. Integrate existing forensic signals.
+8. Generalize document analysis.
+9. Add claim/evidence consistency checks.
+10. Build image/document/overall scores.
+11. Build final Streamlit workflow.
+12. Create representative genuine/fake/tampered demo cases.
+13. Test complete flows.
+14. Clean unused code.
+15. Prepare 10-minute demo.
+
+## 10. Final demo story
+
+A strong demo should tell one coherent story:
+
+> A claimant submits an accident claim. The system analyzes the submitted accident image and supporting document. The image model finds a high probability of synthetic/manipulated content. Document analysis finds one or more tampering inconsistencies. Cross-evidence checks identify a mismatch. The system combines the evidence into an overall fraud likelihood and explains exactly why the claim was flagged.
+
+## 11. Documentation set
+
+Use these files as the project's long-term planning memory:
+
+- `00-MASTER-PLAN.md` — overall blueprint
+- `01-PROBLEM-STATEMENT.md` — exact challenge requirements
+- `02-GAP-ANALYSIS.md` — VerifAI vs target
+- `03-TARGET-ARCHITECTURE.md` — target technical architecture
+- `04-FEATURE-REQUIREMENTS.md` — detailed feature checklist
+- `05-IMPLEMENTATION-ROADMAP.md` — implementation order
+- `06-RISK-ENGINE.md` — scoring/evidence fusion design
+- `07-DATASET-AND-TESTING.md` — data and validation strategy
+- `08-UI-AND-DEMO.md` — UI and 10-minute demo
+- `09-REUSE-MIGRATION-MAP.md` — what to keep/change/remove
+- `10-NO-OVERENGINEERING.md` — project guardrails
+- `11-FINAL-CHECKLIST.md` — readiness checklist
+"""
+
+docs["01-PROBLEM-STATEMENT.md"] = r"""# Adrosonic Problem Statement — Requirements
+
+## Problem
+
+**AI-Powered Synthetic Identity & Deepfake Claim Detection System**
+
+Goal: detect AI-generated and manipulated content in digital insurance claims.
+
+Insurance claims can contain:
+- accident photos
+- vehicle damage images
+- medical reports
+- identity documents
+
+Generative AI and image manipulation tools create a fraud risk.
+
+## Challenge
+
+Build a working AI-powered fraud detection prototype that:
+- analyzes uploaded images and documents;
+- flags potentially synthetic or manipulated content;
+- produces risk scoring;
+- explains the reasons for the risk;
+- provides an intuitive user experience.
+
+The challenge emphasizes end-to-end solution design and product execution over building a sophisticated model that is poorly integrated.
+
+## Required scope
+
+### A. Image Manipulation Detection — MUST HAVE
+
+The system should:
+- use a pretrained or custom image manipulation/deepfake model;
+- classify uploaded images as authentic or AI-generated/manipulated;
+- provide confidence;
+- flag images above a defined risk threshold;
+- optionally highlight suspicious regions.
+
+### B. Document Tampering Detection — MUST HAVE
+
+Analyze uploaded PDF/image documents for:
+- inconsistent fonts;
+- altered values;
+- metadata anomalies;
+- OCR-extracted text inconsistencies;
+- suspicious fields with reasons.
+
+### C. Risk Scoring — MUST HAVE
+
+Produce:
+- image authenticity score;
+- document authenticity score;
+- overall fraud likelihood;
+- interpretable reasons.
+
+### D. Demo Interface — MUST HAVE
+
+Provide a web UI where a user can:
+- upload files;
+- see results;
+- see fraud score;
+- see flagged indicators;
+- read a short plain-English explanation.
+
+Accepted UI approaches include Streamlit, Gradio, or basic React/Flask.
+
+### E. Identity Comparison — BONUS
+
+Compare:
+- ID-document face
+- selfie image
+
+Use the comparison to detect mismatch or morphing.
+
+## Challenge constraints
+
+- 24-hour challenge
+- team size: 2–4
+- pretrained models allowed
+- limited authentic/fraud data expected
+- synthetic/tampered data may be generated
+- system should handle data-quality variation such as low resolution, noise, compression artifacts, and incomplete inputs.
+
+## Evaluation
+
+| Criterion | Weight |
+|---|---:|
+| Detection accuracy | 25% |
+| Risk scoring & explainability | 25% |
+| UI / demo quality | 20% |
+| Code quality & architecture | 15% |
+| Innovation / bonus features | 15% |
+
+## Demo requirements
+
+The final demo should show:
+1. image upload and detection confidence;
+2. document upload and tampering flags/reasons;
+3. composite risk score and explanation;
+4. architecture and key decisions;
+5. identity mismatch detection if implemented.
+
+## Important interpretation
+
+The target is not merely a classifier.
+
+The product must demonstrate:
+
+```text
+Evidence
+  -> Detection
+  -> Reasoning
+  -> Risk
+  -> Explainable decision
+  -> Human investigation
+```
+
+Source: Adrosonic Build problem statement, pages 2–5.
+"""
+
+docs["02-GAP-ANALYSIS.md"] = r"""# VerifAI vs Adrosonic — Gap Analysis
+
+## Baseline
+
+Reference:
+`Anupkrmi/SIH-2026-26188-VerifAI`
+
+Estimated similarity to the challenge before modification: **7/10**.
+
+This is an engineering judgment, not a benchmark.
+
+## Comparison
+
+| Requirement | VerifAI | Gap |
+|---|---|---|
+| Image manipulation detection | ELA, noise, recapture and forensic signals | Needs dedicated AI/deepfake classifier |
+| AI-generated image detection | No dedicated detector confirmed | **Major gap** |
+| Confidence score | Partial through signals/risk | Need explicit image-model confidence |
+| Document tampering | Strong | Generalize beyond passport workflow |
+| OCR | Present | Reuse |
+| Suspicious fields/reasons | Present | Generalize |
+| Image authenticity score | Partial | Add explicit score |
+| Document authenticity score | Present through risk architecture | Generalize |
+| Overall fraud risk | Strong | Adapt to claim evidence |
+| Explainability | Strong | Reuse |
+| Upload/results UI | Streamlit | Reuse/adapt |
+| Face comparison | Present | Reuse as bonus |
+| Insurance claim workflow | Not core | **Major gap** |
+| Vehicle damage analysis | Not core | Optional/phase 2 |
+| Medical report analysis | Not core | Generic document workflow first |
+| Cross-claim/evidence consistency | Limited / domain-specific | Add |
+| Synthetic attack testing | Strong for document domain | Adapt |
+
+## Existing strengths
+
+### 1. Evidence fusion
+
+VerifAI has a tiered risk philosophy:
+- cryptographic evidence can be decisive;
+- deterministic rule/issuer failures can be decisive;
+- forensic/biometric signals are advisory.
+
+For the insurance version, preserve the principle:
+
+> strong evidence should have stronger decision authority than weak forensic hints.
+
+### 2. Forensics
+
+Useful reusable components:
+- ELA
+- noise analysis
+- recapture detection
+- image-region analysis
+- heatmap/visual evidence where available
+
+### 3. Document pipeline
+
+Useful concepts:
+- OCR
+- field extraction
+- cross-field consistency
+- metadata
+- document/image forensics
+- structured signals
+
+### 4. Explainability
+
+Every flag should have:
+- check name;
+- result;
+- severity;
+- reason;
+- supporting value/detail where possible.
+
+## Major gaps
+
+### Gap 1 — Dedicated AI/deepfake model
+
+Current forensics are not enough for the challenge's model requirement.
+
+Solution:
+- integrate one pretrained image authenticity/deepfake detector;
+- hide model-specific code behind a simple detector interface.
+
+### Gap 2 — Insurance claim abstraction
+
+Replace passport-centric workflow with:
+
+```text
+Claim
+  -> Evidence
+     -> Images
+     -> Documents
+     -> Identity evidence
+```
+
+### Gap 3 — Generic document tampering
+
+Move from passport/MRZ-specific logic toward:
+- claim forms
+- invoices
+- medical reports
+- repair estimates
+- identity documents.
+
+Passport-specific modules can remain available temporarily but should not drive the new architecture.
+
+### Gap 4 — Explicit score categories
+
+Add:
+- Image Authenticity Score
+- Document Authenticity Score
+- Claim Consistency Score
+- Overall Fraud Likelihood
+
+### Gap 5 — Cross-evidence consistency
+
+Add checks such as:
+- claimant name mismatch;
+- date mismatch;
+- claim amount vs invoice amount;
+- document metadata vs claimed incident date;
+- identity mismatch.
+
+## Target
+
+After closing these gaps:
+
+```text
+Existing VerifAI
+      +
+AI image detector
+      +
+Insurance claim layer
+      +
+Generic document analysis
+      +
+Cross-evidence consistency
+      +
+Explicit score presentation
+      =
+Adrosonic-aligned prototype
+```
+"""
+
+docs["03-TARGET-ARCHITECTURE.md"] = r"""# Target Architecture
+
+## Design principle
+
+One application, one clear pipeline.
+
+Avoid unnecessary distributed architecture.
+
+## High-level flow
+
+```text
+                    CLAIM
+                      |
+          +-----------+-----------+
+          |                       |
+       IMAGES                 DOCUMENTS
+          |                       |
+          v                       v
+   Image Analysis          Document Analysis
+          |                       |
+   +------+-------+        +------+-------+
+   |      |       |        |      |       |
+  AI    ELA    Recapture   OCR  Metadata  Tampering
+   |      |       |        |      |       |
+   +------+-------+        +------+-------+
+          |                       |
+          v                       v
+   Image Evidence          Document Evidence
+          |                       |
+          +-----------+-----------+
+                      |
+                      v
+             Claim Consistency
+                      |
+                      v
+               Identity Check
+                      |
+                      v
+                Risk Engine
+                      |
+        +-------------+-------------+
+        |             |             |
+        v             v             v
+      Image        Document      Overall
+      Score         Score        Fraud Risk
+                      |
+                      v
+               Explainable UI
+```
+
+## Proposed project structure
+
+```text
+fraud-detection/
+├── app.py
+├── config.py
+├── requirements.txt
+│
+├── core/
+│   ├── pipeline.py
+│   ├── risk.py
+│   ├── types.py
+│   │
+│   ├── image/
+│   │   ├── detector.py
+│   │   ├── preprocess.py
+│   │   └── forensics.py
+│   │
+│   ├── document/
+│   │   ├── ocr.py
+│   │   ├── tampering.py
+│   │   ├── metadata.py
+│   │   └── fields.py
+│   │
+│   ├── identity/
+│   │   └── face.py
+│   │
+│   └── claim/
+│       ├── parser.py
+│       └── consistency.py
+│
+├── models/
+├── data/
+├── ui/
+│   ├── pages.py
+│   ├── components.py
+│   └── style.py
+│
+└── tests/
+```
+
+## Pipeline contract
+
+Every detector should return a standardized signal.
+
+Conceptually:
+
+```python
+Signal(
+    category="image_ai_detection",
+    severity="FAIL",
+    score=91,
+    confidence=0.91,
+    message="High probability of synthetic image",
+    detail={...}
+)
+```
+
+The exact existing `Signal` type should be reused where practical rather than introducing a second incompatible signal system.
+
+## Detector interface
+
+The AI image detector should behave approximately like:
+
+```python
+result = detect_image(image)
+
+{
+    "label": "AI_GENERATED",
+    "confidence": 0.91,
+    "authenticity_score": 9,
+    "reason": "High probability of synthetic content"
+}
+```
+
+The model implementation must remain replaceable.
+
+## Data model
+
+Minimal claim model:
+
+```python
+claim = {
+    "claim_id": "...",
+    "claimant_name": "...",
+    "claim_date": "...",
+    "claim_type": "Vehicle Accident",
+    "claimed_amount": 85000,
+    "images": [],
+    "documents": []
+}
+```
+
+Keep it simple for the hackathon.
+
+## Evidence categories
+
+### Image evidence
+- AI/deepfake classifier
+- ELA
+- noise
+- recapture
+- compression/metadata
+- suspicious regions
+
+### Document evidence
+- OCR
+- metadata
+- font/layout indicators where available
+- field consistency
+- document image forensics
+
+### Claim evidence
+- name
+- dates
+- amounts
+- identifiers
+- image/document consistency
+
+### Identity evidence
+- face similarity
+- mismatch
+- optional morphing indicator
+
+## Human-in-the-loop
+
+The output should recommend investigation, not pretend to be an absolute legal decision.
+
+Preferred language:
+- "High fraud likelihood"
+- "Secondary review recommended"
+- "Suspicious indicator detected"
+
+Avoid:
+- "This person committed fraud."
+- "This claim is definitely fraudulent."
+"""
+
+docs["04-FEATURE-REQUIREMENTS.md"] = r"""# Feature Requirements
+
+## P0 — Must work
+
+### F1. Claim upload
+- Create a claim.
+- Upload one or more images/documents.
+- Associate files with the claim.
+
+### F2. Image AI detection
+Input:
+- JPG/PNG and common image formats.
+
+Output:
+- authentic/manipulated/AI-generated classification;
+- confidence;
+- authenticity score;
+- explanation.
+
+### F3. Image forensics
+Run reusable forensic checks:
+- ELA;
+- noise;
+- recapture;
+- metadata if available.
+
+### F4. Document OCR
+- extract text;
+- identify relevant fields;
+- retain OCR result for explanation.
+
+### F5. Document tampering
+Check:
+- suspicious visual regions;
+- metadata;
+- inconsistent fields;
+- suspicious values;
+- OCR-derived inconsistencies.
+
+### F6. Risk scoring
+Produce:
+- image authenticity;
+- document authenticity;
+- overall fraud likelihood.
+
+### F7. Explainability
+Every non-trivial flag should include:
+- what was checked;
+- result;
+- reason;
+- supporting evidence.
+
+### F8. UI
+Must support:
+- upload;
+- analyze;
+- results;
+- score;
+- reasons.
+
+## P1 — High-value
+
+### F9. Claim consistency
+Check:
+- name;
+- date;
+- amount;
+- claim ID;
+- document consistency;
+- image timeline metadata.
+
+### F10. Identity comparison
+Compare:
+- ID face;
+- selfie/claimant face.
+
+## P2 — Bonus
+
+- suspicious-region heatmap;
+- synthetic attack generator;
+- richer document types;
+- vehicle-damage-specific model;
+- medical-report field validation;
+- downloadable report.
+
+## Acceptance criteria
+
+### Image
+Given a known manipulated sample:
+- detector produces a suspicious result;
+- confidence is shown;
+- at least one reason is shown.
+
+### Document
+Given a tampered sample:
+- suspicious indicator is shown;
+- reason is shown;
+- OCR/field result is visible where applicable.
+
+### Risk
+Given multiple signals:
+- scores are reproducible;
+- explanation matches contributing evidence;
+- overall result is not a black box.
+
+### UI
+A new evaluator should be able to:
+1. upload evidence;
+2. run analysis;
+3. understand the result without reading source code.
+
+## Priority rule
+
+If time becomes limited:
+
+```text
+P0 > P1 > P2
+```
+
+Never sacrifice a working P0 feature to add a P2 feature.
+"""
+
+docs["05-IMPLEMENTATION-ROADMAP.md"] = r"""# Implementation Roadmap
+
+## Phase 0 — Baseline
+
+### Goal
+Run the reference repository unchanged.
+
+Tasks:
+- clone repository;
+- install dependencies;
+- run Streamlit;
+- test an existing sample;
+- record known working state.
+
+Do not modify architecture yet.
+
+---
+
+## Phase 1 — Dependency mapping
+
+Identify:
+
+```text
+UI
+ ↓
+actions
+ ↓
+pipeline
+ ↓
+detectors
+ ↓
+risk
+```
+
+Mark each module:
+- KEEP
+- MODIFY
+- DEPRECATE
+
+Do not delete anything yet.
+
+---
+
+## Phase 2 — Claim layer
+
+Create:
+- claim object;
+- evidence list;
+- image/document classification;
+- upload flow.
+
+Expected result:
+
+```text
+Claim
+  ├── image_1
+  ├── image_2
+  ├── claim_form.pdf
+  └── invoice.pdf
+```
+
+---
+
+## Phase 3 — AI image detector
+
+Add:
+
+```text
+core/image/detector.py
+```
+
+Responsibilities:
+1. preprocess;
+2. load model;
+3. infer;
+4. normalize output;
+5. return confidence;
+6. return standardized evidence.
+
+Do not let model-specific tensors or preprocessing leak into the risk engine.
+
+---
+
+## Phase 4 — Forensic fusion
+
+Connect:
+- AI detector;
+- ELA;
+- noise;
+- recapture;
+- metadata.
+
+Primary evidence:
+- model output.
+
+Supporting evidence:
+- forensic signals.
+
+---
+
+## Phase 5 — Generic documents
+
+Retain reusable OCR/forensics infrastructure.
+
+Generalize fields for:
+- claim form;
+- invoice;
+- medical report;
+- repair estimate;
+- identity document.
+
+Don't build every document type in the first pass.
+
+---
+
+## Phase 6 — Cross-evidence consistency
+
+Start with deterministic high-value checks:
+
+```text
+Name ↔ Name
+Date ↔ Date
+Amount ↔ Amount
+Claim ID ↔ Claim ID
+Document date ↔ image metadata
+```
+
+Each check should create an explainable signal.
+
+---
+
+## Phase 7 — Risk engine
+
+Create three visible layers:
+
+```text
+IMAGE AUTHENTICITY
+DOCUMENT AUTHENTICITY
+CLAIM CONSISTENCY
+```
+
+Then calculate:
+
+```text
+OVERALL FRAUD LIKELIHOOD
+```
+
+The exact formula should be documented and configurable.
+
+Do not hard-code unexplained numbers throughout the code.
+
+---
+
+## Phase 8 — UI
+
+Recommended pages:
+
+### 1. New Claim
+Upload evidence.
+
+### 2. Analysis
+Progress/status.
+
+### 3. Results
+Overall risk.
+
+### 4. Evidence
+Detailed image/document findings.
+
+### 5. Explanation
+Why the case was flagged.
+
+---
+
+## Phase 9 — Testing
+
+Create known cases:
+
+1. clean image + clean document;
+2. AI-generated image;
+3. manipulated image;
+4. tampered document;
+5. inconsistent dates;
+6. inconsistent amounts;
+7. identity mismatch;
+8. multiple simultaneous indicators.
+
+---
+
+## Phase 10 — Demo hardening
+
+Test:
+- fresh browser;
+- clean install;
+- missing file;
+- unsupported file;
+- corrupt file;
+- low-resolution image;
+- large image;
+- PDF;
+- multiple uploads;
+- model loading failure.
+
+---
+
+## Phase 11 — Cleanup
+
+Only after functionality is stable:
+- remove unused passport-specific modules;
+- remove dead imports;
+- remove duplicate functions;
+- simplify unnecessarily complex paths;
+- document final architecture.
+
+Do not refactor working code merely for aesthetics during the critical implementation window.
+"""
+
+docs["06-RISK-ENGINE.md"] = r"""# Risk Engine and Explainability
+
+## Objective
+
+Turn heterogeneous evidence into a clear, defensible fraud-likelihood result.
+
+## Core principle
+
+Do not treat every signal as equally reliable.
+
+Example:
+
+```text
+Dedicated AI detector
+        = primary evidence
+
+ELA
+Noise
+Recapture
+Metadata
+        = supporting evidence
+
+Cross-document mismatch
+        = deterministic evidence
+```
+
+## Suggested score layers
+
+### 1. Image Authenticity Score
+
+Range:
+
+```text
+0 = highly suspicious
+100 = highly authentic
+```
+
+Inputs:
+- AI/deepfake model;
+- ELA;
+- noise;
+- recapture;
+- metadata.
+
+### 2. Document Authenticity Score
+
+Inputs:
+- OCR consistency;
+- metadata;
+- tampering signals;
+- field consistency;
+- visual evidence.
+
+### 3. Claim Consistency Score
+
+Inputs:
+- name;
+- dates;
+- amounts;
+- IDs;
+- document relationships;
+- image timeline.
+
+### 4. Overall Fraud Likelihood
+
+Range:
+
+```text
+0 = low fraud likelihood
+100 = high fraud likelihood
+```
+
+## Example
+
+```text
+Image authenticity       22
+Document authenticity    64
+Claim consistency        35
+Identity match           96
+```
+
+The identity score should not automatically cancel strong fraud evidence.
+
+## Explainability record
+
+Each signal should preserve:
+
+```python
+{
+    "check": "...",
+    "category": "...",
+    "severity": "...",
+    "score": ...,
+    "confidence": ...,
+    "message": "...",
+    "detail": {...}
+}
+```
+
+## Example explanation
+
+```text
+HIGH FRAUD LIKELIHOOD — 74%
+
+Primary indicators:
+- AI-generation probability: 91%
+- Document alteration indicator detected
+- Claim amount differs from supporting invoice
+
+Supporting indicators:
+- ELA anomaly
+- Metadata inconsistency
+
+Identity:
+- Face matches submitted ID
+```
+
+## Important safety rule
+
+The score is a fraud-risk signal, not a legal determination.
+
+Use language such as:
+- "potentially manipulated";
+- "suspicious";
+- "high fraud likelihood";
+- "secondary review recommended."
+
+## Avoid false confidence
+
+Do not display:
+
+```text
+100% FRAUD
+```
+
+unless the system has an explicitly justified deterministic rule and the product requirements truly support such a conclusion.
+
+For model-based evidence, confidence should be described as model confidence/probability, not certainty.
+
+## Configuration
+
+Risk weights and thresholds should live in one configuration/policy location.
+
+Avoid:
+
+```python
+if score > 63:
+```
+
+scattered across many files.
+
+Prefer a centralized policy.
+
+## Testing the risk engine
+
+Test:
+- no signals;
+- one weak signal;
+- one strong model signal;
+- multiple supporting signals;
+- conflicting signals;
+- missing detector output;
+- detector failure;
+- missing metadata.
+
+The same input evidence should produce the same result.
+"""
+
+docs["07-DATASET-AND-TESTING.md"] = r"""# Dataset, Synthetic Data and Testing Plan
+
+## Challenge data reality
+
+The problem statement anticipates:
+- limited authentic images;
+- limited real-world fraud data;
+- need for synthetic/tampered examples;
+- variations in resolution, noise and compression.
+
+## Dataset categories
+
+### Authentic
+
+```text
+images/
+documents/
+identity/
+invoices/
+reports/
+```
+
+### Manipulated
+
+Create representative attack classes:
+
+```text
+AI_GENERATED
+OBJECT_INSERTION
+OBJECT_REMOVAL
+COPY_PASTE
+LOCAL_EDIT
+SCREEN_RECAPTURE
+COMPRESSION
+DOCUMENT_VALUE_EDIT
+DOCUMENT_TEXT_EDIT
+METADATA_CHANGE
+```
+
+## Do not overfit to one attack
+
+The challenge expects robustness against unseen/novel patterns.
+
+Therefore, don't make the detector depend on one visible artifact.
+
+Use multiple evidence types.
+
+## Synthetic test matrix
+
+| Case | Image | Document | Consistency | Expected |
+|---|---|---|---|---|
+| Clean | genuine | genuine | consistent | LOW |
+| AI image | synthetic | genuine | consistent | HIGH |
+| Edited image | manipulated | genuine | consistent | MEDIUM/HIGH |
+| Tampered doc | genuine | tampered | inconsistent | HIGH |
+| Date mismatch | genuine | genuine | inconsistent | MEDIUM/HIGH |
+| Amount mismatch | genuine | genuine | inconsistent | MEDIUM |
+| Identity mismatch | genuine | genuine | mismatch | HIGH |
+| Multiple attacks | manipulated | tampered | inconsistent | HIGH/CRITICAL |
+
+These are target test scenarios, not guaranteed model outcomes.
+
+## Image testing
+
+For every image test:
+- original resolution;
+- resized;
+- JPEG compressed;
+- noisy;
+- low resolution.
+
+The detector should not fail simply because the input is imperfect.
+
+## Document testing
+
+Test:
+- clean PDF;
+- scanned document;
+- image document;
+- edited value;
+- edited date;
+- metadata changed;
+- low-quality scan.
+
+## Failure handling
+
+If a detector cannot process an input:
+- do not crash the entire claim;
+- create an "analysis unavailable" signal;
+- continue other checks;
+- make the limitation visible.
+
+## Regression suite
+
+Every fixed bug should become a test.
+
+Especially test:
+- score calculation;
+- missing files;
+- model loading;
+- malformed documents;
+- OCR failures;
+- unsupported formats;
+- UI state;
+- multiple evidence items.
+
+## Accuracy reporting
+
+For the final demo, report simple metrics where available:
+- accuracy;
+- precision;
+- recall;
+- F1;
+- confusion matrix.
+
+Do not claim production accuracy from a tiny synthetic demo set.
+"""
+
+docs["08-UI-AND-DEMO.md"] = r"""# UI and 10-Minute Demo Plan
+
+## UI goal
+
+An evaluator should understand the system within seconds.
+
+The UI should prioritize:
+1. risk;
+2. evidence;
+3. explanation.
+
+## Suggested navigation
+
+```text
+Dashboard
+Claims
+New Claim
+Analysis Results
+Evidence Details
+```
+
+For a 24-hour prototype, a single-page or small multi-page Streamlit app is sufficient.
+
+## New Claim
+
+Show:
+
+```text
+Claim ID
+Claimant
+Claim type
+Claimed amount
+
+Upload:
+[ Accident images ]
+[ Claim documents ]
+[ ID / selfie ]
+```
+
+Button:
+
+`Analyze Claim`
+
+## Results
+
+Top:
+
+```text
+OVERALL FRAUD LIKELIHOOD
+
+        74 / 100
+        HIGH
+```
+
+Then:
+
+```text
+Image Authenticity       21 / 100
+Document Authenticity    63 / 100
+Claim Consistency        38 / 100
+Identity                  MATCH
+```
+
+## Reasons
+
+```text
+Why was this claim flagged?
+
+1. AI-generated image probability is high.
+2. Document alteration indicator detected.
+3. Claim amount differs from supporting invoice.
+4. Image metadata is inconsistent with the claimed incident timeline.
+```
+
+## Evidence details
+
+For an image:
+- original image;
+- classification;
+- confidence;
+- suspicious-region visualization if available;
+- forensic indicators.
+
+For a document:
+- preview;
+- OCR;
+- suspicious fields;
+- reasons;
+- metadata.
+
+## Demo script
+
+### Minute 0–1 — Problem
+
+Explain:
+- digital claims contain multiple evidence types;
+- generative AI increases manipulation risk.
+
+### Minute 1–3 — Clean claim
+
+Upload genuine sample.
+
+Show:
+- low risk;
+- image score;
+- document score;
+- explanation.
+
+### Minute 3–6 — Fraudulent claim
+
+Upload manipulated/AI-generated image and tampered document.
+
+Show:
+- AI detector;
+- forensic evidence;
+- document flags;
+- claim inconsistencies.
+
+### Minute 6–7 — Risk engine
+
+Explain:
+
+```text
+Individual evidence
+       ↓
+Evidence fusion
+       ↓
+Risk
+```
+
+### Minute 7–8 — Identity bonus
+
+Show:
+- ID face;
+- selfie;
+- match/mismatch.
+
+### Minute 8–9 — Architecture
+
+Show:
+
+```text
+Upload
+ ↓
+Detection
+ ↓
+Evidence
+ ↓
+Risk
+ ↓
+Explainability
+```
+
+### Minute 9–10 — Impact
+
+Explain:
+- early fraud screening;
+- reduced manual review;
+- evidence-backed investigation.
+
+## Demo rule
+
+Never demo an untested live path if a known-good test case can demonstrate the feature more reliably.
+
+The goal is to show a working system, not to gamble on model behavior.
+"""
+
+docs["09-REUSE-MIGRATION-MAP.md"] = r"""# VerifAI Reuse and Migration Map
+
+## Reference repository
+
+`Anupkrmi/SIH-2026-26188-VerifAI`
+
+## KEEP / strongly reuse
+
+### Risk architecture
+Existing:
+- evidence/signals;
+- severity;
+- tiered decision logic;
+- centralized policy.
+
+Action:
+- adapt categories to insurance evidence.
+
+### Forensics
+Reuse:
+- ELA;
+- noise;
+- recapture;
+- image-region analysis;
+- heatmap/visualization where useful.
+
+### Face
+Reuse:
+- face detection/comparison infrastructure.
+
+Use as bonus unless required earlier.
+
+### UI
+Reuse:
+- Streamlit structure;
+- components;
+- result rendering concepts.
+
+### Tests
+Reuse:
+- test organization;
+- signal-level tests;
+- end-to-end pipeline testing philosophy.
+
+### Synthetic-data approach
+Reuse the idea of generating known attack cases for validation.
+
+## MODIFY
+
+### `core/pipeline.py`
+
+Change from:
+
+```text
+passport screening
+```
+
+to:
+
+```text
+claim evidence screening
+```
+
+The pipeline should dispatch based on evidence type.
+
+### `core/risk.py`
+
+Keep the evidence-fusion concept.
+
+Add categories:
+- image;
+- document;
+- claim consistency;
+- identity.
+
+### `core/realdoc/`
+
+Generalize from passport/document-specific assumptions toward:
+- claim forms;
+- invoices;
+- reports;
+- identity documents.
+
+### `ui/`
+
+Change product terminology:
+- passport/case → claim;
+- document screening → claim analysis;
+- issuer checks → evidence/claim checks.
+
+## DEPRIORITIZE / eventually remove
+
+- TD3/MRZ-only logic;
+- passport-specific issuer registry;
+- passport attack generator;
+- passport-specific cryptographic workflow;
+- passport-only synthetic cases.
+
+Do not delete them before the replacement workflow works.
+
+## NEW
+
+### `core/image/detector.py`
+
+Dedicated AI/deepfake model.
+
+### `core/claim/`
+
+Claim object and cross-evidence consistency.
+
+### `core/document/`
+
+Generic document abstraction.
+
+## Migration principle
+
+Do not duplicate two competing pipelines.
+
+Bad:
+
+```text
+old passport pipeline
++
+new insurance pipeline
++
+two different risk engines
+```
+
+Better:
+
+```text
+common evidence infrastructure
+        +
+domain-specific adapters
+        +
+one risk engine
+```
+
+## End state
+
+```text
+               Claim
+                 |
+        +--------+--------+
+        |                 |
+      Image            Document
+        |                 |
+   AI + forensics     OCR + tamper
+        |                 |
+        +--------+--------+
+                 |
+          Claim consistency
+                 |
+          Identity (bonus)
+                 |
+             Risk Engine
+                 |
+          Explainable Result
+```
+"""
+
+docs["10-NO-OVERENGINEERING.md"] = r"""# No-Overengineering Rules
+
+## Project rule
+
+> Build the simplest system that reliably satisfies the problem statement.
+
+## 1. No architecture changes without a reason
+
+Before changing architecture, answer:
+- What requirement does this solve?
+- What bug/problem does it remove?
+- Why can't the existing design handle it?
+
+If there is no strong answer, don't change it.
+
+## 2. Prefer reuse
+
+If VerifAI already has a working component and it is relevant:
+- reuse it;
+- adapt it;
+- test it.
+
+Do not rewrite it just because the code is not yours.
+
+## 3. One responsibility, not one file per line of code
+
+Create modules when they represent a real domain responsibility.
+
+Do not create:
+- wrappers around wrappers;
+- unnecessary factories;
+- excessive interfaces;
+- one-function abstraction layers.
+
+## 4. No unnecessary infrastructure
+
+Do not add:
+- Docker orchestration;
+- Kubernetes;
+- Redis;
+- Kafka;
+- microservices;
+- message queues;
+- cloud databases
+
+unless an actual requirement demands them.
+
+## 5. Model first, infrastructure second
+
+The challenge rewards detection, risk logic, UI, architecture and innovation.
+
+Spend time on:
+- detection;
+- evidence;
+- scoring;
+- explanation;
+- demo reliability.
+
+Do not spend hackathon time building infrastructure that does not improve those areas.
+
+## 6. Avoid LLM overuse
+
+Use deterministic code for:
+- dates;
+- amounts;
+- IDs;
+- exact comparisons;
+- thresholds;
+- known document fields.
+
+An LLM should not be introduced just because the project is called AI.
+
+## 7. Avoid duplicate logic
+
+There should be one authoritative implementation for:
+- risk thresholds;
+- score calculation;
+- evidence normalization;
+- claim representation.
+
+## 8. Fail gracefully
+
+A single broken detector should not destroy the whole claim analysis.
+
+Use:
+
+```text
+Detector failed
+      ↓
+Unavailable signal
+      ↓
+Continue remaining analysis
+```
+
+## 9. Don't optimize prematurely
+
+First:
+- correct;
+- understandable;
+- demonstrable.
+
+Then optimize only if profiling shows a real bottleneck.
+
+## 10. Don't refactor during the critical path
+
+If working code solves the requirement:
+- leave it;
+- add a test;
+- move forward.
+
+Clean it after the MVP works.
+
+## 11. Complexity budget
+
+For every new component ask:
+
+```text
+Does this improve:
+A. detection?
+B. explainability?
+C. reliability?
+D. demo?
+E. required architecture?
+```
+
+If none apply, it probably does not belong in the MVP.
+
+## 12. Definition of done
+
+A feature is done when:
+- it works;
+- it has a test/sample;
+- its output is understandable;
+- it does not break existing features.
+
+Not when it has the most sophisticated architecture.
+"""
+
+docs["11-FINAL-CHECKLIST.md"] = r"""# Final Readiness Checklist
+
+## Problem alignment
+
+- [ ] Image manipulation detection implemented
+- [ ] AI-generated image detection implemented
+- [ ] Confidence shown
+- [ ] Document tampering detection implemented
+- [ ] OCR implemented
+- [ ] Metadata checks implemented
+- [ ] Suspicious fields shown
+- [ ] Reasons shown
+- [ ] Image authenticity score shown
+- [ ] Document authenticity score shown
+- [ ] Overall fraud likelihood shown
+- [ ] Risk explanation shown
+- [ ] Working upload UI
+- [ ] Identity comparison implemented if time allows
+
+## Image pipeline
+
+- [ ] Preprocessing works
+- [ ] AI/deepfake model loads reliably
+- [ ] Genuine sample tested
+- [ ] AI-generated sample tested
+- [ ] Manipulated sample tested
+- [ ] Low-resolution sample tested
+- [ ] Compressed sample tested
+- [ ] Detector failure handled
+- [ ] Confidence displayed
+- [ ] Forensic indicators displayed
+
+## Document pipeline
+
+- [ ] PDF upload works
+- [ ] Image-document upload works
+- [ ] OCR works
+- [ ] Metadata extraction works
+- [ ] Tampering checks work
+- [ ] Field extraction works
+- [ ] Suspicious fields have reasons
+- [ ] OCR failure handled
+
+## Claim consistency
+
+- [ ] Name consistency
+- [ ] Date consistency
+- [ ] Amount consistency
+- [ ] Claim ID consistency
+- [ ] Metadata/timeline check
+- [ ] Cross-evidence result visible
+
+## Risk engine
+
+- [ ] Image score
+- [ ] Document score
+- [ ] Claim consistency score
+- [ ] Overall score
+- [ ] Thresholds centralized
+- [ ] Reasons match signals
+- [ ] Missing evidence handled
+- [ ] Detector failure handled
+- [ ] No unexplained hard-coded score logic
+
+## UI
+
+- [ ] Upload is obvious
+- [ ] Analyze button works
+- [ ] Progress/status is understandable
+- [ ] Overall risk is visible immediately
+- [ ] Scores are readable
+- [ ] Reasons are readable
+- [ ] Evidence details accessible
+- [ ] No debug output visible
+- [ ] No broken controls
+
+## Reliability
+
+- [ ] Fresh environment tested
+- [ ] Clean browser tested
+- [ ] Multiple files tested
+- [ ] Invalid file tested
+- [ ] Corrupt file tested
+- [ ] Large file tested
+- [ ] Model load failure tested
+- [ ] OCR failure tested
+
+## Code
+
+- [ ] No duplicate functions
+- [ ] No dead imports
+- [ ] No unnecessary abstractions
+- [ ] No unused services
+- [ ] Configuration centralized
+- [ ] Errors handled
+- [ ] Important logic documented
+- [ ] Existing tests still pass
+
+## Demo
+
+- [ ] Clean claim demo ready
+- [ ] Fraudulent image demo ready
+- [ ] Tampered document demo ready
+- [ ] Composite-risk demo ready
+- [ ] Identity mismatch demo ready if implemented
+- [ ] Architecture diagram ready
+- [ ] 10-minute story rehearsed
+- [ ] Backup demo files ready
+
+## Final quality gate
+
+The system should answer three questions clearly:
+
+### 1. Is the image suspicious?
+Show:
+- result;
+- confidence;
+- evidence.
+
+### 2. Is the document suspicious?
+Show:
+- tampering indicators;
+- fields;
+- reasons.
+
+### 3. Why is this claim high/medium/low risk?
+Show:
+- evidence;
+- scores;
+- explanation.
+
+If these three answers are clear, the core product is ready.
+"""
+
+for name, content in docs.items():
+    (base / name).write_text(content, encoding="utf-8")
+
+zip_path = Path("/mnt/data/Adrosonic_Fraud_Detection_Project_Docs.zip")
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+    for p in sorted(base.glob("*.md")):
+        z.write(p, arcname=p.name)
+
+print(f"Created {len(docs)} markdown files in {base}")
+print(f"ZIP: {zip_path}")
+print("\nFiles:")
+for p in sorted(base.glob("*.md")):
+    print("-", p.name)

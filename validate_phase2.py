@@ -1,7 +1,11 @@
 import time
 import os
 import urllib.request
-import psutil
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 from PIL import Image
 import io
 
@@ -16,6 +20,8 @@ def measure_time(func, *args, **kwargs):
     return res, end - start
 
 def print_memory():
+    if not PSUTIL_AVAILABLE:
+        return 0.0
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
     return mem_info.rss / (1024 * 1024)

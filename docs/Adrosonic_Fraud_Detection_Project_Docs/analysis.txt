@@ -118,6 +118,7 @@ The minimum successful product should support:
 - Overall fraud likelihood
 - Low/Medium/High result
 - Plain-English explanation
+- Basic claim consistency (dates and amounts)
 
 ### UI
 - Claim creation/upload
@@ -130,8 +131,6 @@ The minimum successful product should support:
 
 - Face comparison between ID and selfie
 - Cross-document identity consistency
-- Claim amount consistency
-- Date consistency
 - Image metadata versus claimed accident timeline
 - Synthetic/tampered sample generation
 - Suspicious-region heatmap

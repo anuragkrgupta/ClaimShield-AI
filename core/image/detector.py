@@ -3,6 +3,7 @@ import torch.nn as nn
 from PIL import Image
 import io
 import logging
+import threading
 from typing import Tuple, Optional
 from core.types import Signal
 
@@ -16,11 +17,13 @@ logger = logging.getLogger(__name__)
 
 class UnivFDDetector:
     _instance = None
+    _lock = threading.Lock()
     
     @classmethod
-    def get_instance(cls, fc_weights_path: str = "fc_weights.pth"):
-        if cls._instance is None or not getattr(cls._instance, 'is_loaded', False):
-            cls._instance = cls(fc_weights_path)
+    def get_instance(cls, fc_weights_path: str = "fc_weights.pth", force_reload: bool = False):
+        with cls._lock:
+            if cls._instance is None or force_reload:
+                cls._instance = cls(fc_weights_path)
         return cls._instance
 
     def __init__(self, fc_weights_path: str = "fc_weights.pth"):

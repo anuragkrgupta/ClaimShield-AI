@@ -58,18 +58,21 @@ Must support:
 - score;
 - reasons.
 
+### F9. Basic claim consistency
+Check:
+- date consistency;
+- amount consistency.
+
 ## P1 — High-value
 
-### F9. Claim consistency
+### F10. Advanced claim consistency
 Check:
 - name;
-- date;
-- amount;
 - claim ID;
 - document consistency;
 - image timeline metadata.
 
-### F10. Identity comparison
+### F11. Identity comparison
 Compare:
 - ID face;
 - selfie/claimant face.

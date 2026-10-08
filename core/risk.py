@@ -10,7 +10,7 @@ def calculate_image_authenticity(signals: List[Signal]) -> int:
         return 100  # Default to authentic if no signals
         
     # Find the AI detection signal
-    ai_signal = next((s for s in signals if s.name == "AI_IMAGE_DETECTION_MOCK"), None)
+    ai_signal = next((s for s in signals if s.name in ["UNIVFD_AI_DETECTION", "AI_IMAGE_DETECTION_MOCK"]), None)
     
     if ai_signal:
         return ai_signal.score

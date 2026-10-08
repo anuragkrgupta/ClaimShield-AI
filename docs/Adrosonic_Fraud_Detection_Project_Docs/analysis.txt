@@ -86,11 +86,12 @@ Explainable Investigation Result
 
 **Do not rebuild working functionality unnecessarily.**
 
-Use the reference repository as a foundation:
-- keep useful generic components;
-- adapt tightly coupled passport-specific components;
-- add only the missing insurance/deepfake capabilities;
-- remove dead code only after the new pipeline works.
+ClaimShield AI is a standalone project.
+VerifAI is a reference/source for selectively reusable components and approaches.
+Do not copy or adopt the entire VerifAI architecture.
+Avoid passport-specific assumptions.
+Reuse a component only when it is actually useful and simpler than implementing the required functionality directly.
+The simplest reliable solution is preferred.
 
 ## 6. MVP
 
@@ -705,18 +706,21 @@ Must support:
 - score;
 - reasons.
 
+### F9. Basic claim consistency
+Check:
+- date consistency;
+- amount consistency.
+
 ## P1 — High-value
 
-### F9. Claim consistency
+### F10. Advanced claim consistency
 Check:
 - name;
-- date;
-- amount;
 - claim ID;
 - document consistency;
 - image timeline metadata.
 
-### F10. Identity comparison
+### F11. Identity comparison
 Compare:
 - ID face;
 - selfie/claimant face.

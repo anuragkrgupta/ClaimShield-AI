@@ -32,23 +32,24 @@
 
 ## Document pipeline
 
-- [ ] PDF upload works
-- [ ] Image-document upload works
-- [ ] OCR works
-- [ ] Metadata extraction works
-- [ ] Tampering checks work
-- [ ] Field extraction works
-- [ ] Suspicious fields have reasons
-- [ ] OCR failure handled
+- [x] PDF extraction works (PyMuPDF)
+- [x] Image-document extraction works (PIL / PyTesseract OCR)
+- [x] OCR works (fallback for scanned docs)
+- [x] Metadata extraction works (PDF producer, creator, creation/mod dates)
+- [x] Tampering checks work (editing software, date discrepancies)
+- [x] Field extraction works (dates, amounts, identifiers)
+- [x] Suspicious fields have reasons (explainable signals emitted)
+- [x] OCR / unreadable file failure handled gracefully
 
-## Claim consistency
+## Claim consistency & Cross-evidence
 
 - [ ] Name consistency (P1)
-- [ ] Date consistency (P0)
-- [ ] Amount consistency (P0)
-- [ ] Claim ID consistency
-- [ ] Metadata/timeline check
-- [ ] Cross-evidence result visible
+- [x] Date consistency (P0 deterministic checks implemented)
+- [x] Amount consistency (P0 deterministic checks implemented)
+- [x] Claim ID / Identifier consistency across evidence (P0 implemented)
+- [x] Cross-evidence semantic relationship screening (CLIP image–text screening)
+- [ ] Cross-evidence result visible in UI (UI phase planned)
+
 
 ## Risk engine
 

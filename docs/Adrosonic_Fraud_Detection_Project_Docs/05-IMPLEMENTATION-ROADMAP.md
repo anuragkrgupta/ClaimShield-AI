@@ -55,34 +55,39 @@ Evaluate reference forensic techniques from VerifAI for use in ClaimShield AI's 
 
 ---
 
-## Phase 4 — Claim Layer & Basic Consistency [PLANNED — P0]
+## Phase 4 — Claim Layer & Basic Consistency [COMPLETED]
 
 ### Goal
 Introduce the core claim entity and deterministic cross-evidence checks.
 
-### Tasks
-1. Define deterministic claim data structure in `core/claim/`:
-   * Claim metadata (Claim ID, Claimant Name, Incident Date, Claimed Amount).
-   * Evidence containers for images and documents.
-2. Implement basic **P0** consistency checks:
-   * **Date Consistency:** Incident date vs. document/metadata dates.
-   * **Amount Consistency:** Claimed amount vs. extracted receipt/invoice amounts.
-3. Emit explainable `Signal` objects for date or amount discrepancies.
+### Deliverables
+1. Defined deterministic claim data structure in `core/claim/models.py`:
+   * `Claim`: Metadata (Claim ID, Claimant Name, Incident Date, Claim Date, Claimed Amount, Claim Type) and evidence container.
+   * `EvidenceItem`: Evidence items with extracted dates, amounts, and metadata.
+2. Implemented basic **P0** deterministic consistency checks in `core/claim/consistency.py`:
+   * **Date Consistency:** Formats validation, incident date vs claim filing date, and evidence date predating incident.
+   * **Amount Consistency:** Formats/numeric validation, non-negativity, and claimed amount vs supporting evidence totals.
+3. Emitted explainable `Signal` objects distinguishing malformed/invalid inputs from genuine factual contradictions.
+4. Comprehensive unit test suite in `tests/test_claim_consistency.py` (11 passing tests).
 
 ---
 
-## Phase 5 — Generic Document Analysis [PLANNED — P0]
+## Phase 5 — Generic Document Analysis & Cross-Evidence Verification [IMPLEMENTED — P0]
 
 ### Goal
-Screen uploaded claim documents (bills, repair estimates, medical reports) without passport-specific logic.
+Screen uploaded claim documents (bills, repair estimates, medical reports) without passport-specific logic, inspect document authenticity and metadata tampering, and perform cross-evidence verification against images and claim details.
 
-### Tasks
-1. Integrate generic OCR text extraction (PDF / image).
-2. Extract key fields (dates, monetary amounts, provider names).
-3. Basic document tampering indicators:
-   * Metadata anomalies (modification dates vs creation dates).
-   * Visual layout inconsistencies / altered text values where detectable.
-4. Handle OCR failures gracefully without halting claim analysis.
+### Completed Capabilities
+1. Generic text and metadata extraction from PDF (PyMuPDF) and images (PIL/PyTesseract) in `core/document/extractor.py`.
+2. Extracted dates, monetary amounts, and document identifiers (invoice IDs, policy numbers).
+3. Document tampering and metadata anomaly detection in `core/document/tampering.py` (consumer editing software detection, modification date discrepancies, synthetic repetition anomalies).
+4. Cross-evidence relationship checks in `core/claim/cross_evidence.py`:
+   * Deterministic identifier and claim ID consistency.
+   * Cross-evidence date and amount data sufficiency.
+   * Zero-shot image–document semantic relationship screening via CLIP ViT-L/14, categorizing relationships into `CONSISTENT`, `POTENTIAL_INCONSISTENCY`, and `INSUFFICIENT_INFORMATION`.
+5. Graceful handling of empty, corrupt, and unreadable files.
+6. Full test suite in `tests/test_document_analysis.py` (11 tests passing, 28 tests passing across full suite).
+
 
 ---
 

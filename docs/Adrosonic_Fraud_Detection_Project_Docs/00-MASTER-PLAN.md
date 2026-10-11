@@ -213,8 +213,8 @@ Do not introduce:
 3. Investigate and select a practical pretrained AI/deepfake image detector. **[COMPLETED — Phase 2]**
 4. Integrate UnivFD detector into the image pipeline. **[COMPLETED — Phase 2]**
 5. Evaluate whether VerifAI forensic components provide enough value to justify selective reuse. **[COMPLETED — Phase 3: ELA & noise rejected, recapture proposed]**
-6. Decide whether to implement candidate recapture detection or advance directly to claim consistency. **[CURRENT DECISION GATE]**
-7. Build core claim layer and basic consistency checks (date & amount — P0). **[PLANNED — Phase 4]**
+6. Decide whether to implement candidate recapture detection or advance directly to claim consistency. **[DECISION GATE PASSED]**
+7. Build core claim layer and basic consistency checks (date & amount — P0). **[COMPLETED — Phase 4]**
 8. Build generic document analysis (OCR, metadata, tampering indicators). **[PLANNED — Phase 5]**
 9. Finalize multi-tier scoring (Document Authenticity, Claim Consistency, Overall Fraud Likelihood). **[PLANNED — Phase 6]**
 10. Build the complete multi-evidence Streamlit claim workflow. **[PLANNED — Phase 7]**

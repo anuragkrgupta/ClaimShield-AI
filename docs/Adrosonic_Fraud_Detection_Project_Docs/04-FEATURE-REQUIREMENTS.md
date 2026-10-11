@@ -51,9 +51,10 @@
 - Current: Single-image upload, analysis trigger, score display, and signal explanations in `app.py`.
 - Planned: Complete claim workflow with multi-evidence submission and composite dashboard.
 
-### F9. Basic claim consistency [Planned — P0]
-- **Date consistency:** Incident date vs. document/metadata dates.
-- **Amount consistency:** Claimed amount vs. extracted invoice/estimate totals.
+### F9. Basic claim consistency [Implemented — P0]
+- **Date consistency:** Incident date vs. claim filing date and supporting evidence dates (`check_date_consistency`).
+- **Amount consistency:** Claimed amount vs. extracted invoice/estimate totals (`check_amount_consistency`).
+- Implemented deterministically in `core/claim/consistency.py`.
 
 ---
 

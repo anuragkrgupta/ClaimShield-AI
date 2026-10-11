@@ -7,7 +7,8 @@ ClaimShield AI is an insurance-agnostic digital evidence authenticity and fraud 
 * **Phase 1 (Minimal Scaffold):** Implemented core data structures (`Signal` in `core/types.py`), initial risk calculation (`calculate_image_authenticity` in `core/risk.py`), and baseline unit tests with mocks.
 * **Phase 2 (UnivFD Integration):** Integrated UniversalFakeDetect (`UnivFDDetector` in `core/image/detector.py`) using a pretrained CLIP ViT-L/14 backbone and custom classification head (`fc_weights.pth`). Single-image analysis is operational in the Streamlit UI (`app.py`).
 * **Phase 3 (Forensic Evaluation):** Completed forensic evaluation of reference methods; Error Level Analysis (ELA) and reference noise analysis were rejected for the generic natural-image pipeline due to reliability limitations. Recapture detection (Moiré / JPEG-blockiness) remains a proposed candidate awaiting implementation and validation.
-* **Planned Capabilities:** Document tampering & OCR, basic date/amount claim consistency checks (P0), multi-tier risk engine fusion, and full multi-evidence claim workflow UI.
+* **Phase 4 (Claim Layer & Basic Consistency):** Implemented deterministic claim data structures (`Claim`, `EvidenceItem` in `core/claim/models.py`) and basic date and amount consistency checks (`check_date_consistency`, `check_amount_consistency`, `verify_claim_consistency` in `core/claim/consistency.py`).
+* **Planned Capabilities:** Document tampering & OCR (Phase 5), multi-tier risk engine fusion (Phase 6), and full multi-evidence claim workflow UI (Phase 7).
 
 ## Setup and Installation
 
@@ -35,9 +36,9 @@ Open your browser at `http://localhost:8501`. Upload an image (JPG, JPEG, PNG) a
 ### Automated Unit Tests
 To run the automated test suite (isolated to ClaimShield tests):
 ```bash
-python -m pytest tests/test_pipeline.py
+python -m pytest tests/test_claim_consistency.py tests/test_pipeline.py
 ```
-*(Tests currently cover mocked detector responses and risk score calculation logic).*
+*(Tests cover claim consistency checks, mocked detector responses, and risk score calculation logic).*
 
 ### Live Model Validation
 To validate live UnivFD model initialization, resource usage, and inference:

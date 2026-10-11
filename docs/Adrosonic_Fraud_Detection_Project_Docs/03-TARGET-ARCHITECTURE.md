@@ -63,10 +63,14 @@ ClaimShield-AI/
 ├── core/
 │   ├── types.py                # Signal dataclass contract
 │   ├── risk.py                 # calculate_image_authenticity()
-│   └── image/
-│       └── detector.py         # UnivFDDetector, analyze_image_univfd()
+│   ├── image/
+│   │   └── detector.py         # UnivFDDetector, analyze_image_univfd()
+│   └── claim/
+│       ├── models.py           # Claim and EvidenceItem data structures
+│       └── consistency.py      # Basic date and amount consistency checks
 ├── tests/
-│   └── test_pipeline.py        # Automated unit tests with mocks
+│   ├── test_pipeline.py        # Automated unit tests with mocks
+│   └── test_claim_consistency.py # Claim data & consistency unit tests
 └── VerifAI_Ref/                # Read-only reference repository
 ```
 

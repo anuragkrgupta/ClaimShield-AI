@@ -52,7 +52,7 @@ The following reference components are passport-specific and are **completely ex
 | `core/risk.py` | **Implemented (Initial)** | `calculate_image_authenticity()` active; multi-tier fusion planned |
 | `core/image/detector.py` | **Implemented** | UnivFD AI-generation detection with CLIP backbone |
 | `core/image/forensics.py` | **Proposed Candidate** | Recapture detection (Moiré / Blockiness) awaiting implementation |
-| `core/claim/` | **Planned (P0)** | Claim container & basic date/amount consistency checks |
+| `core/claim/` | **Implemented (P0)** | `Claim` / `EvidenceItem` container & date/amount consistency checks |
 | `core/document/` | **Planned (P0)** | Generic OCR & document tampering detection |
 | `core/identity/` | **Planned (Bonus)** | Face comparison between ID and selfie |
 

@@ -1,116 +1,72 @@
 # Dataset, Synthetic Data and Testing Plan
 
-## Challenge data reality
+## Challenge Data Reality
 
 The problem statement anticipates:
-- limited authentic images;
-- limited real-world fraud data;
-- need for synthetic/tampered examples;
-- variations in resolution, noise and compression.
+* Limited access to real-world insurance fraud data.
+* Need to synthesize and test realistic attack patterns.
+* Variations in real-world image quality (compression, resolution, sensor noise).
 
-## Dataset categories
+---
 
-### Authentic
+## Testing Tiers and Current Status
 
-```text
-images/
-documents/
-identity/
-invoices/
-reports/
-```
+Do not conflate passing unit tests with model accuracy:
 
-### Manipulated
+### 1. Automated Unit Tests [Implemented & Passing]
+* **Location:** `tests/test_pipeline.py` (6 tests passing).
+* **Scope:** Unit test suite using `unittest.mock` to isolate pipeline logic, verify signal creation, test empty/invalid byte handling, and validate `calculate_image_authenticity()`.
+* **Execution Command:**
+  ```bash
+  python -m pytest tests/test_pipeline.py
+  ```
+  *(Always specify the test path to avoid running reference scripts in `VerifAI_Ref/`)*.
+* **Important Note:** These tests pass using mocked predictions; they do **not** evaluate live model accuracy.
 
-Create representative attack classes:
+### 2. Live Empirical Model Validation [Implemented Tool]
+* **Location:** `validate_phase2.py`.
+* **Scope:** Measures real model initialization time, memory footprint, and CPU inference latency across real, corrupt, and synthetic image inputs.
+* **Execution Command:**
+  ```bash
+  python validate_phase2.py [path/to/ai_image.jpg]
+  ```
 
-```text
-AI_GENERATED
-OBJECT_INSERTION
-OBJECT_REMOVAL
-COPY_PASTE
-LOCAL_EDIT
-SCREEN_RECAPTURE
-COMPRESSION
-DOCUMENT_VALUE_EDIT
-DOCUMENT_TEXT_EDIT
-METADATA_CHANGE
-```
+### 3. Historical Phase 2 Validation Findings
+During Phase 2 integration testing:
+* **Real Photograph (Wikipedia car photo):** Scored approximately **69.16%** image authenticity.
+* **AI-Generated Image (Car damage):** Scored approximately **72.53%** image authenticity.
+* **Finding:** The model did not meaningfully separate this pair of test images.
+* **Guidance:** UnivFD output is an advisory indicator. Documentation and UI must not claim that the model reliably detects every synthetic image, or that passing unit tests prove detection accuracy.
 
-## Do not overfit to one attack
+---
 
-The challenge expects robustness against unseen/novel patterns.
+## Target Scenario Matrix (Planned Validation)
 
-Therefore, don't make the detector depend on one visible artifact.
+| Scenario | Image Evidence | Document Evidence | Consistency Check | Expected Composite Risk | Current Status |
+|---|---|---|---|---|---|
+| Clean Claim | Genuine photo | Genuine invoice/receipt | Dates & amounts match | `LOW` | Planned |
+| AI Damage Image | Synthetic image | Genuine document | Consistent | `MEDIUM / HIGH` | Partially tested (UnivFD active) |
+| Tampered Document | Genuine photo | Altered amount/date | Inconsistent | `HIGH` | Planned (Phase 4/5) |
+| Date Mismatch | Genuine photo | Genuine document | Incident date != Invoice date | `MEDIUM / HIGH` | Planned (Phase 4) |
+| Amount Discrepancy | Genuine photo | Genuine document | Claimed > Invoice total | `MEDIUM` | Planned (Phase 4) |
+| Identity Mismatch | Genuine photo | ID != Selfie face | Biometric mismatch | `HIGH` | Planned (Bonus) |
+| Multi-Attack | Synthetic image | Tampered document | Inconsistent | `HIGH / CRITICAL` | Planned |
 
-Use multiple evidence types.
+*Note: These are target scenario specifications for future end-to-end evaluation, not guaranteed model benchmark outcomes.*
 
-## Synthetic test matrix
+---
 
-| Case | Image | Document | Consistency | Expected |
-|---|---|---|---|---|
-| Clean | genuine | genuine | consistent | LOW |
-| AI image | synthetic | genuine | consistent | HIGH |
-| Edited image | manipulated | genuine | consistent | MEDIUM/HIGH |
-| Tampered doc | genuine | tampered | inconsistent | HIGH |
-| Date mismatch | genuine | genuine | inconsistent | MEDIUM/HIGH |
-| Amount mismatch | genuine | genuine | inconsistent | MEDIUM |
-| Identity mismatch | genuine | genuine | mismatch | HIGH |
-| Multiple attacks | manipulated | tampered | inconsistent | HIGH/CRITICAL |
+## Robustness & Failure Handling Requirements
 
-These are target test scenarios, not guaranteed model outcomes.
+1. **Corrupt & Empty Inputs:** The image detector must handle malformed, truncated, or zero-byte files gracefully (`(None, False)`) without crashing the application.
+2. **Missing Dependencies/Weights:** If `fc_weights.pth` is missing or transformers cannot be loaded, the app must display an "Analysis Unavailable" status rather than crashing.
+3. **Resolution & Compression:** Evaluate inputs across native resolution, downscaled images, and compressed JPEGs to understand real-world degradation.
 
-## Image testing
+---
 
-For every image test:
-- original resolution;
-- resized;
-- JPEG compressed;
-- noisy;
-- low resolution.
+## Accuracy Reporting Principles
 
-The detector should not fail simply because the input is imperfect.
-
-## Document testing
-
-Test:
-- clean PDF;
-- scanned document;
-- image document;
-- edited value;
-- edited date;
-- metadata changed;
-- low-quality scan.
-
-## Failure handling
-
-If a detector cannot process an input:
-- do not crash the entire claim;
-- create an "analysis unavailable" signal;
-- continue other checks;
-- make the limitation visible.
-
-## Regression suite
-
-Every fixed bug should become a test.
-
-Especially test:
-- score calculation;
-- missing files;
-- model loading;
-- malformed documents;
-- OCR failures;
-- unsupported formats;
-- UI state;
-- multiple evidence items.
-
-## Accuracy reporting
-
-For the final demo, report simple metrics where available:
-- accuracy;
-- precision;
-- recall;
-- F1;
-- confusion matrix.
-
-Do not claim production accuracy from a tiny synthetic demo set.
+For final release and hackathon presentation:
+* Report empirical metrics (Accuracy, Precision, Recall) only on explicitly verified, representative datasets.
+* Do not claim production-grade accuracy from small demo samples.
+* Clearly differentiate between unit test pass rates and empirical classification accuracy.

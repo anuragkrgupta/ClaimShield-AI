@@ -2,142 +2,68 @@
 
 ## Baseline
 
-Reference:
-`Anupkrmi/SIH-2026-26188-VerifAI`
+Reference repository: `Anupkrmi/SIH-2026-26188-VerifAI` (stored in `VerifAI_Ref/` as a read-only reference).
 
-Estimated similarity to the challenge before modification: **7/10**.
+Initial alignment before modification: approximately **7/10**.
 
-This is an engineering judgment, not a benchmark.
+---
 
-## Comparison
+## Comparison & Current Implementation Status
 
-| Requirement | VerifAI | Gap |
-|---|---|---|
-| Image manipulation detection | ELA, noise, recapture and forensic signals | Needs dedicated AI/deepfake classifier |
-| AI-generated image detection | No dedicated detector confirmed | **Major gap** |
-| Confidence score | Partial through signals/risk | Need explicit image-model confidence |
-| Document tampering | Strong | Generalize beyond passport workflow |
-| OCR | Present | Reuse |
-| Suspicious fields/reasons | Present | Generalize |
-| Image authenticity score | Partial | Add explicit score |
-| Document authenticity score | Present through risk architecture | Generalize |
-| Overall fraud risk | Strong | Adapt to claim evidence |
-| Explainability | Strong | Reuse |
-| Upload/results UI | Streamlit | Reuse/adapt |
-| Face comparison | Present | Reuse as bonus |
-| Insurance claim workflow | Not core | **Major gap** |
-| Vehicle damage analysis | Not core | Optional/phase 2 |
-| Medical report analysis | Not core | Generic document workflow first |
-| Cross-claim/evidence consistency | Limited / domain-specific | Add |
-| Synthetic attack testing | Strong for document domain | Adapt |
+| Requirement | VerifAI Reference | ClaimShield AI Current Status | Gap Status |
+|---|---|---|---|
+| AI-generated image detection | None | Implemented (UnivFD with CLIP ViT-L/14 backbone) | **Closed (Implemented)**; discrimination on natural images under empirical testing |
+| Image-model confidence | Partial / implicit | Implemented (explicit synthetic probability & confidence in `Signal`) | **Closed (Implemented)** |
+| Image authenticity score | None | Implemented (`calculate_image_authenticity` in `core/risk.py`) | **Closed (Implemented)** |
+| Image forensics | ELA, noise, recapture | Phase 3 evaluated: ELA and noise **rejected**; Recapture **candidate** | **Resolved / Streamlined** |
+| Document tampering | Passport-centric | Planned generic document pipeline | **Open (Phase 5)** |
+| OCR text extraction | Present | Planned for generic insurance receipts/bills | **Open (Phase 5)** |
+| Document authenticity score | Embedded in passport risk | Planned as standalone score layer | **Open (Phase 6)** |
+| Claim consistency (Date / Amount) | Domain-specific checks | Planned deterministic P0 checks | **Open (Phase 4)** |
+| Overall fraud likelihood | Tiered rules | Planned multi-tier fusion | **Open (Phase 6)** |
+| Explainability | Present | Implemented `Signal` pattern; expanding to full claim | **Partially Closed** |
+| Claim submission UI | Travel document upload | Single-image active; multi-evidence claim workflow planned | **Partially Closed** |
+| Face comparison | Present | Retained as optional P1/Bonus | **Deferred (Bonus)** |
 
-## Existing strengths
+---
 
-### 1. Evidence fusion
+## Reusable Reference Strengths & Forensic Decisions
 
-VerifAI has a tiered risk philosophy:
-- cryptographic evidence can be decisive;
-- deterministic rule/issuer failures can be decisive;
-- forensic/biometric signals are advisory.
+### 1. Evidence Fusion & Explainability
+* The reference pattern of representing each check as an explicit signal with severity, numeric score, and plain-English message was preserved in ClaimShield AI (`Signal` in `core/types.py`).
 
-For the insurance version, preserve the principle:
+### 2. Forensics Evaluation (Phase 3 Findings)
+* **Error Level Analysis (ELA):** Evaluated and **rejected** for ClaimShield AI. ELA produces widespread false positives on legitimate camera images saved with variable compression.
+* **Noise Analysis:** Evaluated and **rejected**. VerifAI's noise analysis is tuned for high-contrast ID documents and produces noisy, misleading flags on natural camera photos.
+* **Recapture Detection:** Retained as a **candidate** supporting layer (detecting screen display Moiré patterns and JPEG grid blockiness) to support the primary AI detector.
 
-> strong evidence should have stronger decision authority than weak forensic hints.
+---
 
-### 2. Forensics
+## Gap Resolution Summary
 
-Useful reusable components:
-- ELA
-- noise analysis
-- recapture detection
-- image-region analysis
-- heatmap/visual evidence where available
+### Gap 1 — Dedicated AI Image Model [CLOSED]
+UniversalFakeDetect (UnivFD) was integrated in `core/image/detector.py` with CLIP ViT-L/14 backbone and custom FC head weights.
+* *Note on Model Discrimination:* Initial empirical validation in Phase 2 demonstrated that UnivFD produced similar authenticity scores on real (~69.16%) versus AI-generated car-damage (~72.53%) photos. The model provides an advisory synthetic likelihood, not definitive proof of fraud.
 
-### 3. Document pipeline
-
-Useful concepts:
-- OCR
-- field extraction
-- cross-field consistency
-- metadata
-- document/image forensics
-- structured signals
-
-### 4. Explainability
-
-Every flag should have:
-- check name;
-- result;
-- severity;
-- reason;
-- supporting value/detail where possible.
-
-## Major gaps
-
-### Gap 1 — Dedicated AI/deepfake model
-
-Current forensics are not enough for the challenge's model requirement.
-
-Solution:
-- integrate one pretrained image authenticity/deepfake detector;
-- hide model-specific code behind a simple detector interface.
-
-### Gap 2 — Insurance claim abstraction
-
-Replace passport-centric workflow with:
-
+### Gap 2 — Insurance Claim Abstraction [OPEN — Phase 4]
+Transition from single-file inspection to an insurance claim entity:
 ```text
-Claim
-  -> Evidence
-     -> Images
-     -> Documents
-     -> Identity evidence
+Claim (Claim ID, Claimant, Incident Date, Claimed Amount)
+  ├── Images (Damage photos, scene photos)
+  └── Documents (Invoices, repair estimates, medical bills)
 ```
 
-### Gap 3 — Generic document tampering
+### Gap 3 — Generic Document Tampering [OPEN — Phase 5]
+Screening general insurance documents for OCR discrepancies, altered values, and metadata anomalies without travel-document constraints.
 
-Move from passport/MRZ-specific logic toward:
-- claim forms
-- invoices
-- medical reports
-- repair estimates
-- identity documents.
+### Gap 4 — Multi-Tier Scoring [OPEN — Phase 6]
+Expanding beyond the currently implemented Image Authenticity Score to:
+* Document Authenticity Score (0–100)
+* Claim Consistency Score (0–100)
+* Overall Fraud Likelihood (0–100)
 
-Passport-specific modules can remain available temporarily but should not drive the new architecture.
-
-### Gap 4 — Explicit score categories
-
-Add:
-- Image Authenticity Score
-- Document Authenticity Score
-- Claim Consistency Score
-- Overall Fraud Likelihood
-
-### Gap 5 — Cross-evidence consistency
-
-Add checks such as:
-- claimant name mismatch;
-- date mismatch;
-- claim amount vs invoice amount;
-- document metadata vs claimed incident date;
-- identity mismatch.
-
-## Target
-
-After closing these gaps:
-
-```text
-Existing VerifAI
-      +
-AI image detector
-      +
-Insurance claim layer
-      +
-Generic document analysis
-      +
-Cross-evidence consistency
-      +
-Explicit score presentation
-      =
-Adrosonic-aligned prototype
-```
+### Gap 5 — Cross-Evidence Consistency [OPEN — Phase 4]
+Deterministic checks:
+* Incident date vs. document/metadata dates (P0).
+* Claimed amount vs. invoice/estimate totals (P0).
+* Claimant name matching (P1).

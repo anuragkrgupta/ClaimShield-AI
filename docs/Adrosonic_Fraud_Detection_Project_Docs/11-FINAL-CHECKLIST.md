@@ -2,33 +2,33 @@
 
 ## Problem alignment
 
-- [ ] Image manipulation detection implemented
-- [ ] AI-generated image detection implemented
-- [ ] Confidence shown
+- [ ] Image manipulation detection (generalized)
+- [x] AI-generated image detection implemented (UnivFD)
+- [x] Confidence shown (Model synthetic probability & confidence)
 - [ ] Document tampering detection implemented
 - [ ] OCR implemented
 - [ ] Metadata checks implemented
 - [ ] Suspicious fields shown
-- [ ] Reasons shown
-- [ ] Image authenticity score shown
+- [x] Reasons shown (Signal message)
+- [x] Image authenticity score shown (`calculate_image_authenticity`)
 - [ ] Document authenticity score shown
 - [ ] Overall fraud likelihood shown
-- [ ] Risk explanation shown
-- [ ] Working upload UI
-- [ ] Identity comparison implemented if time allows
+- [x] Risk explanation shown (Single-signal explanation active)
+- [x] Working upload UI (Single-image analysis active in `app.py`)
+- [ ] Identity comparison implemented if time allows (Bonus)
 
 ## Image pipeline
 
-- [ ] Preprocessing works
-- [ ] AI/deepfake model loads reliably
-- [ ] Genuine sample tested
-- [ ] AI-generated sample tested
+- [x] Preprocessing works (CLIPProcessor in `core/image/detector.py`)
+- [x] AI/deepfake model loads reliably (`UnivFDDetector` with `fc_weights.pth`)
+- [ ] Genuine sample benchmarked across diverse datasets
+- [ ] AI-generated sample benchmarked across diverse datasets
 - [ ] Manipulated sample tested
 - [ ] Low-resolution sample tested
 - [ ] Compressed sample tested
-- [ ] Detector failure handled
-- [ ] Confidence displayed
-- [ ] Forensic indicators displayed
+- [x] Detector failure handled (Graceful fallback on missing weights or invalid bytes)
+- [x] Confidence displayed
+- [ ] Supporting forensic indicators displayed (Recapture candidate awaiting validation; ELA/noise excluded)
 
 ## Document pipeline
 
@@ -43,58 +43,58 @@
 
 ## Claim consistency
 
-- [ ] Name consistency
-- [ ] Date consistency
-- [ ] Amount consistency
+- [ ] Name consistency (P1)
+- [ ] Date consistency (P0)
+- [ ] Amount consistency (P0)
 - [ ] Claim ID consistency
 - [ ] Metadata/timeline check
 - [ ] Cross-evidence result visible
 
 ## Risk engine
 
-- [ ] Image score
+- [x] Image score (`calculate_image_authenticity` active)
 - [ ] Document score
 - [ ] Claim consistency score
-- [ ] Overall score
-- [ ] Thresholds centralized
-- [ ] Reasons match signals
-- [ ] Missing evidence handled
-- [ ] Detector failure handled
+- [ ] Overall score (Multi-tier fusion planned)
+- [ ] Thresholds centralized in `config.py`
+- [x] Reasons match signals
+- [ ] Missing evidence handled across multi-file claim
+- [x] Detector failure handled gracefully
 - [ ] No unexplained hard-coded score logic
 
 ## UI
 
-- [ ] Upload is obvious
-- [ ] Analyze button works
-- [ ] Progress/status is understandable
-- [ ] Overall risk is visible immediately
-- [ ] Scores are readable
-- [ ] Reasons are readable
-- [ ] Evidence details accessible
-- [ ] No debug output visible
-- [ ] No broken controls
+- [x] Upload is obvious (Streamlit `file_uploader`)
+- [x] Analyze button works
+- [ ] Progress/status is understandable for multi-file claims
+- [x] Overall risk is visible immediately (Image score banner active)
+- [x] Scores are readable
+- [x] Reasons are readable
+- [ ] Evidence details accessible across multi-file claims
+- [x] No debug output visible
+- [x] No broken controls
 
 ## Reliability
 
 - [ ] Fresh environment tested
 - [ ] Clean browser tested
-- [ ] Multiple files tested
-- [ ] Invalid file tested
-- [ ] Corrupt file tested
+- [ ] Multiple files tested (Multi-file upload planned)
+- [x] Invalid file tested (Handled gracefully in `app.py` and `tests/test_pipeline.py`)
+- [x] Corrupt file tested (Tested in `validate_phase2.py`)
 - [ ] Large file tested
-- [ ] Model load failure tested
+- [x] Model load failure tested (Tested in unit suite)
 - [ ] OCR failure tested
 
 ## Code
 
 - [ ] No duplicate functions
-- [ ] No dead imports
-- [ ] No unnecessary abstractions
+- [x] No dead imports in active modules
+- [x] No unnecessary abstractions
 - [ ] No unused services
 - [ ] Configuration centralized
-- [ ] Errors handled
-- [ ] Important logic documented
-- [ ] Existing tests still pass
+- [x] Errors handled in image pipeline
+- [x] Important logic documented
+- [x] Existing tests pass (`6 passed` in `tests/test_pipeline.py`)
 
 ## Demo
 

@@ -21,7 +21,9 @@ Evidence Details
 
 For a 24-hour prototype, a single-page or small multi-page Streamlit app is sufficient.
 
-## New Claim
+> **Current Implementation Status:** `app.py` currently implements a single-image inspection interface running UnivFD inference, rendering the image preview, synthetic likelihood/confidence, Image Authenticity Score, and plain-English reasons. The full multi-evidence claim workflow described below is the target design planned for Phase 7.
+
+## Target Claim Submission Workflow (Phase 7 Design)
 
 Show:
 
@@ -32,16 +34,16 @@ Claim type
 Claimed amount
 
 Upload:
-[ Accident images ]
-[ Claim documents ]
-[ ID / selfie ]
+[ Accident / Damage images ]
+[ Claim documents / invoices ]
+[ ID / selfie (Optional bonus) ]
 ```
 
 Button:
 
 `Analyze Claim`
 
-## Results
+## Results Dashboard
 
 Top:
 
@@ -66,9 +68,9 @@ Identity                  MATCH
 ```text
 Why was this claim flagged?
 
-1. AI-generated image probability is high.
-2. Document alteration indicator detected.
-3. Claim amount differs from supporting invoice.
+1. AI-generated image probability is high (UnivFD).
+2. Document alteration indicator detected (Metadata modification).
+3. Claim amount differs from supporting invoice ($85k claimed vs $58k invoice).
 4. Image metadata is inconsistent with the claimed incident timeline.
 ```
 
@@ -76,10 +78,10 @@ Why was this claim flagged?
 
 For an image:
 - original image;
-- classification;
-- confidence;
-- suspicious-region visualization if available;
-- forensic indicators.
+- classification and synthetic probability;
+- model confidence;
+- candidate recapture / metadata indicators (if active);
+- *(Note: ELA is excluded due to unreliability on generic images; heatmaps are optional P2 polish).*
 
 For a document:
 - preview;

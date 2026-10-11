@@ -1,118 +1,112 @@
 # Feature Requirements
 
-## P0 — Must work
+## P0 — Must Work (Core MVP)
 
-### F1. Claim upload
-- Create a claim.
-- Upload one or more images/documents.
-- Associate files with the claim.
+### F1. Claim upload [Planned]
+- Create a claim container.
+- Upload one or more evidence files (images/documents).
+- Associate files with the claim record.
 
-### F2. Image AI detection
-Input:
-- JPG/PNG and common image formats.
+### F2. Image AI detection [Implemented]
+- Input: JPG/PNG and common image formats.
+- Implementation: UniversalFakeDetect (UnivFD) with CLIP ViT-L/14 backbone and custom head.
+- Output:
+  - Synthetic probability / AI-generation likelihood (`confidence`).
+  - Image Authenticity Score (0–100, where higher is more authentic).
+  - Severity level (`HIGH` for fake, `LOW` for authentic).
+  - Plain-English explanation signal.
 
-Output:
-- authentic/manipulated/AI-generated classification;
-- confidence;
-- authenticity score;
-- explanation.
+### F3. Supporting image forensics [Planned Candidate / Supporting]
+- Supporting indicators to complement the primary AI detector:
+  - Recapture detection (Moiré pattern and JPEG-blockiness) — *Proposed candidate awaiting implementation*.
+  - Image format and EXIF metadata checks — *Planned*.
+- *Decision Note:* Error Level Analysis (ELA) and reference noise analysis were evaluated and **excluded** from P0 requirements due to reliability issues on natural scene images.
 
-### F3. Image forensics
-Run reusable forensic checks:
-- ELA;
-- noise;
-- recapture;
-- metadata if available.
+### F4. Document OCR [Planned]
+- Extract text from uploaded PDF/image documents.
+- Identify relevant financial and timeline fields (dates, amounts, provider names).
+- Retain extracted text for auditability and explanation.
 
-### F4. Document OCR
-- extract text;
-- identify relevant fields;
-- retain OCR result for explanation.
+### F5. Document tampering [Planned]
+- Check metadata anomalies (creation date vs modification date).
+- Visual and layout inconsistencies / altered text values.
+- Emit structured signals with explainable reasons.
 
-### F5. Document tampering
-Check:
-- suspicious visual regions;
-- metadata;
-- inconsistent fields;
-- suspicious values;
-- OCR-derived inconsistencies.
+### F6. Multi-tier risk scoring [Partially Implemented]
+- Current: `calculate_image_authenticity()` active in `core/risk.py`.
+- Planned:
+  - Document Authenticity Score (0–100).
+  - Claim Consistency Score (0–100).
+  - Overall Fraud Likelihood (0–100) combining all evidence layers.
 
-### F6. Risk scoring
-Produce:
-- image authenticity;
-- document authenticity;
-- overall fraud likelihood.
+### F7. Explainability [Implemented Pattern, Expanding]
+- Every non-trivial flag emits a `Signal` with:
+  - `name`: Identifier of the check.
+  - `severity`: Severity level (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
+  - `score`: Numeric impact on authenticity.
+  - `confidence`: Confidence or probability estimate.
+  - `message`: Plain-English explanation.
 
-### F7. Explainability
-Every non-trivial flag should include:
-- what was checked;
-- result;
-- reason;
-- supporting evidence.
+### F8. Web UI [Single-Image Implemented, Multi-file Planned]
+- Current: Single-image upload, analysis trigger, score display, and signal explanations in `app.py`.
+- Planned: Complete claim workflow with multi-evidence submission and composite dashboard.
 
-### F8. UI
-Must support:
-- upload;
-- analyze;
-- results;
-- score;
-- reasons.
+### F9. Basic claim consistency [Planned — P0]
+- **Date consistency:** Incident date vs. document/metadata dates.
+- **Amount consistency:** Claimed amount vs. extracted invoice/estimate totals.
 
-### F9. Basic claim consistency
-Check:
-- date consistency;
-- amount consistency.
+---
 
-## P1 — High-value
+## P1 — High-Value (Next Priority)
 
 ### F10. Advanced claim consistency
-Check:
-- name;
-- claim ID;
-- document consistency;
-- image timeline metadata.
+- Claimant name fuzzy matching across multiple documents.
+- Cross-document timeline alignment.
+- Advanced claim metadata relationships.
 
-### F11. Identity comparison
-Compare:
-- ID face;
-- selfie/claimant face.
+### F11. Identity comparison (Bonus)
+- Compare facial biometric features between uploaded ID document and selfie.
+- Flag face mismatch or morphing indicators.
 
-## P2 — Bonus
+---
 
-- suspicious-region heatmap;
-- synthetic attack generator;
-- richer document types;
-- vehicle-damage-specific model;
-- medical-report field validation;
-- downloadable report.
+## P2 — Polish & Enhancements
 
-## Acceptance criteria
+- Suspicious-region heatmap visualizations.
+- Synthetic attack generator for test augmentation.
+- Support for specialized domain forms (e.g., medical coding, repair line items).
+- Downloadable PDF investigation report.
+
+---
+
+## Acceptance Criteria
 
 ### Image
-Given a known manipulated sample:
-- detector produces a suspicious result;
-- confidence is shown;
-- at least one reason is shown.
+Given an uploaded image:
+- The detector executes gracefully (without crashing on valid, corrupt, or empty inputs).
+- A synthetic probability and Image Authenticity Score are produced.
+- UnivFD is presented as an advisory model signal; an AI-generation likelihood is not treated as definitive legal proof of fraud.
 
 ### Document
-Given a tampered sample:
-- suspicious indicator is shown;
-- reason is shown;
-- OCR/field result is visible where applicable.
+Given a tampered document:
+- Discrepant fields or metadata anomalies generate visible warning signals.
+- Plain-English reasons explain why the document is flagged.
 
 ### Risk
-Given multiple signals:
-- scores are reproducible;
-- explanation matches contributing evidence;
-- overall result is not a black box.
+Given multiple evidence signals:
+- Scores are deterministic and reproducible.
+- Contributing signals clearly map to the final risk assessment.
+- The system highlights suspicious findings without presenting false certainty.
 
 ### UI
-A new evaluator should be able to:
-1. upload evidence;
-2. run analysis;
-3. understand the result without reading source code.
+An evaluator can:
+1. Upload claim files.
+2. Run analysis.
+3. Understand the fraud assessment and contributing evidence within seconds.
 
-## Priority rule
+---
+
+## Priority Rule
 
 If time becomes limited:
 
@@ -120,4 +114,4 @@ If time becomes limited:
 P0 > P1 > P2
 ```
 
-Never sacrifice a working P0 feature to add a P2 feature.
+Never sacrifice a working P0 feature to add a P2 enhancement. Basic date and amount consistency checks belong in P0.

@@ -2,165 +2,111 @@
 
 ## Objective
 
-Turn heterogeneous evidence into a clear, defensible fraud-likelihood result.
+Turn heterogeneous evidence signals into an explainable, defensible fraud-likelihood assessment for human investigators.
 
-## Core principle
+---
 
-Do not treat every signal as equally reliable.
+## Current Implementation Status
 
-Example:
+* **Implemented (`core/risk.py`):** `calculate_image_authenticity(signals: List[Signal]) -> int`. Currently extracts the UnivFD detection score (or defaults to 100 if no anomaly is flagged).
+* **Planned (Phase 6):** Full multi-tier fusion engine integrating Document Authenticity, Claim Consistency, and Overall Fraud Likelihood.
 
-```text
-Dedicated AI detector
-        = primary evidence
+---
 
-ELA
-Noise
-Recapture
-Metadata
-        = supporting evidence
+## Core Principles
 
-Cross-document mismatch
-        = deterministic evidence
-```
+### 1. Distinct Concepts
+Do not treat detection outputs as interchangeable:
+* **AI-generation likelihood:** The model's probability estimate that an image is synthetic.
+* **Image forensic indicators:** Physical or compression artifacts (e.g., Moiré screen patterns, JPEG blockiness).
+* **Image Authenticity Score:** Composite confidence that the image is a genuine digital capture.
+* **Overall Fraud Likelihood:** Claim-level probability combining image authenticity, document validity, and claim consistency.
 
-## Suggested score layers
+**Rule:** High AI-generation likelihood is **evidence**, not legal proof of fraud. Conversely, a high image authenticity score is not a guarantee of genuine claim legitimacy.
 
-### 1. Image Authenticity Score
-
-Range:
+### 2. Tiered Evidence Authority
+Do not treat every signal as equally reliable:
 
 ```text
-0 = highly suspicious
-100 = highly authentic
+Deterministic Mismatches (Dates, Amounts)
+        = High-confidence, verifiable evidence
+
+Dedicated AI Detector (UnivFD)
+        = Primary model signal (advisory likelihood)
+
+Supporting Forensics (Recapture / Metadata)
+        = Supporting circumstantial indicators
 ```
 
-Inputs:
-- AI/deepfake model;
-- ELA;
-- noise;
-- recapture;
-- metadata.
+---
 
-### 2. Document Authenticity Score
+## Score Architecture
 
-Inputs:
-- OCR consistency;
-- metadata;
-- tampering signals;
-- field consistency;
-- visual evidence.
+### 1. Image Authenticity Score [Implemented]
+* **Range:** 0 (highly suspicious / synthetic) to 100 (authentic).
+* **Current Input:** `UNIVFD_AI_DETECTION` signal.
+* **Planned Inputs:** Candidate recapture detection (Moiré / blockiness) and metadata checks.
+* *Excluded:* Error Level Analysis (ELA) and reference noise analysis were evaluated and rejected due to false-alarm rates on generic images.
 
-### 3. Claim Consistency Score
+### 2. Document Authenticity Score [Planned — Phase 5/6]
+* **Range:** 0 (tampered / fraudulent) to 100 (authentic).
+* **Inputs:** OCR field consistency, document metadata tampering, visual layout alterations.
 
-Inputs:
-- name;
-- dates;
-- amounts;
-- IDs;
-- document relationships;
-- image timeline.
+### 3. Claim Consistency Score [Planned — Phase 4/6]
+* **Range:** 0 (high discrepancy) to 100 (fully consistent).
+* **Inputs (P0):** Incident date vs. document/metadata dates; claimed amount vs. invoice/receipt totals.
+* **Inputs (P1):** Claimant name matching across evidence items.
 
-### 4. Overall Fraud Likelihood
+### 4. Overall Fraud Likelihood [Planned — Phase 6]
+* **Range:** 0 (low fraud risk) to 100 (high fraud risk).
+* **Fusion:** Transparent, weighted policy combining image, document, and consistency scores.
+* **Tiers:** `LOW` (< 40), `MEDIUM` (40–69), `HIGH` (>= 70).
 
-Range:
+---
 
-```text
-0 = low fraud likelihood
-100 = high fraud likelihood
-```
+## Explainability Contract
 
-## Example
-
-```text
-Image authenticity       22
-Document authenticity    64
-Claim consistency        35
-Identity match           96
-```
-
-The identity score should not automatically cancel strong fraud evidence.
-
-## Explainability record
-
-Each signal should preserve:
+Every check emits a standardized `Signal` object matching `core/types.py`:
 
 ```python
-{
-    "check": "...",
-    "category": "...",
-    "severity": "...",
-    "score": ...,
-    "confidence": ...,
-    "message": "...",
-    "detail": {...}
-}
+@dataclass
+class Signal:
+    name: str                      # e.g., "UNIVFD_AI_DETECTION", "DATE_MISMATCH"
+    severity: str                  # "LOW", "MEDIUM", "HIGH", "CRITICAL"
+    score: int                     # 0-100 authenticity score representation
+    message: str                   # Plain-English explanation
+    confidence: Optional[float] = None  # Model confidence or synthetic probability
 ```
 
-## Example explanation
+### Example Summary Presentation
 
 ```text
-HIGH FRAUD LIKELIHOOD — 74%
+OVERALL FRAUD LIKELIHOOD — 74% (HIGH)
 
-Primary indicators:
-- AI-generation probability: 91%
-- Document alteration indicator detected
-- Claim amount differs from supporting invoice
+Primary Findings:
+- UNIVFD_AI_DETECTION [HIGH]: AI-generation likelihood: 91.0% (Score: 9/100)
+- DOCUMENT_ALTERATION [HIGH]: Modification timestamp does not match original creation.
+- AMOUNT_MISMATCH [HIGH]: Claimed amount ($85,000) exceeds supporting invoice ($58,000).
 
-Supporting indicators:
-- ELA anomaly
-- Metadata inconsistency
+Supporting Findings:
+- RECAPTURE_INDICATOR [MEDIUM]: Periodic frequency peak suggests screen photograph.
 
-Identity:
-- Face matches submitted ID
+Recommended Action:
+- Secondary manual investigation recommended before claim settlement.
 ```
 
-## Important safety rule
+---
 
-The score is a fraud-risk signal, not a legal determination.
+## Human-in-the-Loop & Language Safety
 
-Use language such as:
-- "potentially manipulated";
-- "suspicious";
-- "high fraud likelihood";
-- "secondary review recommended."
+The output is a decision-support indicator for claim adjusters, **not a legal determination**.
 
-## Avoid false confidence
+* **Mandatory language:** "High fraud likelihood", "Secondary review recommended", "Potential manipulation indicator detected", "Inconsistency flagged".
+* **Prohibited language:** "100% FRAUD", "Fraud committed", "The claimant is guilty".
+* Model-derived probabilities must always be presented as model confidence, not empirical certainty.
 
-Do not display:
+---
 
-```text
-100% FRAUD
-```
+## Centralized Configuration Policy
 
-unless the system has an explicitly justified deterministic rule and the product requirements truly support such a conclusion.
-
-For model-based evidence, confidence should be described as model confidence/probability, not certainty.
-
-## Configuration
-
-Risk weights and thresholds should live in one configuration/policy location.
-
-Avoid:
-
-```python
-if score > 63:
-```
-
-scattered across many files.
-
-Prefer a centralized policy.
-
-## Testing the risk engine
-
-Test:
-- no signals;
-- one weak signal;
-- one strong model signal;
-- multiple supporting signals;
-- conflicting signals;
-- missing detector output;
-- detector failure;
-- missing metadata.
-
-The same input evidence should produce the same result.
+Weights, score tiers, and threshold values must be managed in a centralized configuration file (`config.py`) once multi-tier fusion is built. Avoid scattering arbitrary heuristic numbers across detector modules.

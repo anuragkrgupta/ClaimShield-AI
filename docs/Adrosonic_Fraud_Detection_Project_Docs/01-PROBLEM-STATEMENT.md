@@ -6,11 +6,13 @@
 
 Goal: detect AI-generated and manipulated content in digital insurance claims.
 
-Insurance claims can contain:
-- accident photos
-- vehicle damage images
-- medical reports
+Insurance claims can contain diverse digital evidence across domains:
+- accident or damage photographs (e.g., vehicle, property)
+- medical reports and invoices
+- repair estimates and receipts
 - identity documents
+
+*(Note: Vehicle accident damage is utilized as the primary demonstration scenario, but the core evidence analysis pipeline is designed to be insurance-domain agnostic).*
 
 Generative AI and image manipulation tools create a fraud risk.
 

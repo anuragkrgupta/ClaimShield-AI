@@ -1,0 +1,28 @@
+# Bytecode and runtime caches
+__pycache__/
+*.py[cod]
+
+# Testing and coverage caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Local logs and temporary files
+*.log
+
+# Reference repository (external read-only reference with separate Git history)
+VerifAI_Ref/
+
+# OS-specific metadata
+.DS_Store
+Thumbs.db

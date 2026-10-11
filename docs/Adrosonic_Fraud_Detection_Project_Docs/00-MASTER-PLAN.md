@@ -150,11 +150,10 @@ The minimum successful product should support:
 
 ### Image
 - Upload image
-- AI-generated/manipulated image detection
-- Detector confidence
-- Basic supporting image-forensic indicators
-- Optional visualization of forensic findings
-- Image authenticity score
+- AI-generated/manipulated image detection (Implemented via UnivFD)
+- Detector confidence & synthetic probability
+- Supporting forensic indicators (Candidate recapture detection — *awaiting validation*; ELA/noise excluded)
+- Image authenticity score (Implemented in `core/risk.py`)
 
 ### Document
 - Upload PDF/image
@@ -164,13 +163,13 @@ The minimum successful product should support:
 - Basic field extraction
 
 ### Risk
-- Image authenticity score
-- Document authenticity score
-- Claim consistency score
-- Overall fraud likelihood
+- Image authenticity score (Implemented)
+- Document authenticity score (Planned)
+- Claim consistency score (Planned)
+- Overall fraud likelihood (Planned)
 - Low/Medium/High result
 - Plain-English explanation
-- Basic claim/evidence consistency checks (e.g., dates and amounts)
+- Basic claim/evidence consistency checks (e.g., dates and amounts — P0)
 
 ### UI
 - Upload claim evidence
@@ -179,16 +178,17 @@ The minimum successful product should support:
 - Evidence details
 - Explainability
 
-Optional visualizations such as ELA/heatmaps are enhancements,
-not blockers for the core MVP.
+Visualizations such as heatmaps are optional P2 enhancements,
+not blockers for the core MVP. Error Level Analysis (ELA) was evaluated
+in Phase 3 and excluded due to high false-alarm rates on natural scene images.
 
 ## 7. Optional / bonus
 
-- Face comparison between ID and selfie
-- Advanced cross-document identity consistency
+- Face comparison between ID and selfie (P1 Bonus)
+- Advanced cross-document identity consistency (P1)
 - Image metadata versus claimed timeline
 - Synthetic/tampered sample generation
-- Suspicious-region heatmap
+- Suspicious-region heatmap (P2)
 - Advanced claim-evidence relationships
 
 ## 8. Explicit non-goals
@@ -206,26 +206,22 @@ Do not introduce:
 - LLM agents for tasks that deterministic code can handle
 - unnecessary abstraction layers
 
-## 9. Development sequence
+## 9. Development sequence & current status
 
-1. Establish ClaimShield's minimal project scaffold.
-2. Freeze the working Phase 1 baseline.
-3. Investigate and select a practical pretrained AI/deepfake image
-   detector.
-4. Integrate the selected detector into the existing image pipeline.
-5. Evaluate whether VerifAI forensic components provide enough value
-   to justify selective reuse.
-6. Add supporting image forensics where useful.
-7. Build generic document analysis (OCR, metadata, tampering indicators).
-8. Add cross-evidence consistency checks.
-9. Finalize Image Authenticity, Document Authenticity, Claim Consistency,
-   and Overall Fraud Likelihood scoring.
-10. Build the complete Streamlit claim-evidence workflow.
-11. Create representative genuine, AI-generated, manipulated, and
-    tampered test/demo cases.
-12. Test failure cases and degraded inputs.
-13. Remove unused code and dependencies.
-14. Prepare the final hackathon demo.
+1. Establish ClaimShield's minimal project scaffold. **[COMPLETED — Phase 1]**
+2. Freeze the working Phase 1 baseline. **[COMPLETED — Phase 1]**
+3. Investigate and select a practical pretrained AI/deepfake image detector. **[COMPLETED — Phase 2]**
+4. Integrate UnivFD detector into the image pipeline. **[COMPLETED — Phase 2]**
+5. Evaluate whether VerifAI forensic components provide enough value to justify selective reuse. **[COMPLETED — Phase 3: ELA & noise rejected, recapture proposed]**
+6. Decide whether to implement candidate recapture detection or advance directly to claim consistency. **[CURRENT DECISION GATE]**
+7. Build core claim layer and basic consistency checks (date & amount — P0). **[PLANNED — Phase 4]**
+8. Build generic document analysis (OCR, metadata, tampering indicators). **[PLANNED — Phase 5]**
+9. Finalize multi-tier scoring (Document Authenticity, Claim Consistency, Overall Fraud Likelihood). **[PLANNED — Phase 6]**
+10. Build the complete multi-evidence Streamlit claim workflow. **[PLANNED — Phase 7]**
+11. Create representative genuine, AI-generated, and tampered test/demo cases. **[PLANNED — Phase 8]**
+12. Test failure cases, corrupt files, and degraded inputs. **[PLANNED — Phase 8]**
+13. Remove dead code and unused dependencies. **[PLANNED]**
+14. Prepare and rehearse the final hackathon demo. **[PLANNED]**
 
 Do not proceed to the next stage merely because it exists in the plan.
 Move forward only when the current stage is working reliably.
@@ -234,7 +230,9 @@ Move forward only when the current stage is working reliably.
 
 A strong demo should tell one coherent story:
 
-> A claimant submits an accident claim. The system analyzes the submitted accident image and supporting document. The image model finds a high probability of synthetic/manipulated content. Document analysis finds one or more tampering inconsistencies. Cross-evidence checks identify a mismatch. The system combines the evidence into an overall fraud likelihood and explains exactly why the claim was flagged.
+> A claimant submits an insurance claim with photos and supporting documents. The system analyzes the damage image with the AI detector and any supporting forensics. Document analysis extracts key fields and checks metadata integrity. Cross-evidence checks identify a date or amount discrepancy between the claim and the invoice. The system combines the evidence into an explainable fraud-likelihood tier and details exactly why the case was flagged for human investigation.
+
+*(Note: Because initial Phase 2 testing showed inconclusive discrimination by UnivFD on real vs AI car images, demo reliability must be grounded in verified test samples and supported by deterministic claim consistency checks).*
 
 ## 11. Documentation set
 

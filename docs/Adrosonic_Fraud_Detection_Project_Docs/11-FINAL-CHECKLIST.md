@@ -5,13 +5,13 @@
 - [ ] Image manipulation detection (generalized)
 - [x] AI-generated image detection implemented (UnivFD)
 - [x] Confidence shown (Model synthetic probability & confidence)
-- [ ] Document tampering detection implemented
-- [ ] OCR implemented
-- [ ] Metadata checks implemented
-- [ ] Suspicious fields shown
+- [x] Document tampering detection implemented (Metadata anomalies, editing software detection)
+- [x] OCR implemented (PyTesseract OCR fallback for images and scanned PDF pages)
+- [x] Metadata checks implemented (Creation vs Mod date, editing software signatures)
+- [x] Suspicious fields shown (Deterministic amount, date, and identifier signals)
 - [x] Reasons shown (Signal message)
 - [x] Image authenticity score shown (`calculate_image_authenticity`)
-- [ ] Document authenticity score shown
+- [ ] Document authenticity score shown (Composite scoring planned for risk fusion)
 - [ ] Overall fraud likelihood shown
 - [x] Risk explanation shown (Single-signal explanation active)
 - [x] Working upload UI (Single-image analysis active in `app.py`)

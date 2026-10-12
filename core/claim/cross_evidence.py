@@ -11,7 +11,7 @@ from PIL import Image
 
 from core.types import Signal
 from core.claim.models import Claim, EvidenceItem
-from core.claim.consistency import _parse_date, _parse_amount
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,25 +33,41 @@ def check_identifier_consistency(claim: Claim) -> List[Signal]:
     id_map: Dict[str, List[str]] = {}  # id_str -> list of item_ids
     for item in claim.evidence_items:
         extracted_ids = item.metadata.get("identifiers", [])
-        if isinstance(extracted_ids, str):
+        if isinstance(extracted_ids, (str, int, float)) and not isinstance(extracted_ids, bool):
             extracted_ids = [extracted_ids]
+        elif not isinstance(extracted_ids, (list, tuple, set)):
+            extracted_ids = []
+
         for ref_id in extracted_ids:
-            norm_id = ref_id.strip().upper()
-            if len(norm_id) >= 4:
-                id_map.setdefault(norm_id, []).append(item.item_id)
+            if ref_id is None or isinstance(ref_id, bool):
+                continue
+            if isinstance(ref_id, (str, int, float)):
+                norm_id = str(ref_id).strip().upper()
+                if len(norm_id) >= 4:
+                    id_map.setdefault(norm_id, []).append(item.item_id)
 
     # Check for direct conflict if two documents claim different policy or invoice numbers for the exact same event
     # If claim has a designated claim_id, check if documents reference an explicit claim ID that differs
     for item in claim.evidence_items:
-        doc_claim_id = item.metadata.get("claim_id")
-        if doc_claim_id and claim.claim_id:
-            if doc_claim_id.strip().upper() != claim.claim_id.strip().upper():
+        raw_doc_claim_id = item.metadata.get("claim_id")
+        # Accept only supported scalar types (str, int, float; exclude bool)
+        if (
+            raw_doc_claim_id is not None
+            and not isinstance(raw_doc_claim_id, bool)
+            and isinstance(raw_doc_claim_id, (str, int, float))
+            and claim.claim_id is not None
+            and not isinstance(claim.claim_id, bool)
+            and isinstance(claim.claim_id, (str, int, float))
+        ):
+            doc_claim_id = str(raw_doc_claim_id).strip().upper()
+            target_claim_id = str(claim.claim_id).strip().upper()
+            if doc_claim_id and target_claim_id and doc_claim_id != target_claim_id:
                 signals.append(Signal(
                     name="CROSS_EVIDENCE_CLAIM_ID_MISMATCH",
                     severity="HIGH",
                     score=30,
                     message=(
-                        f"Evidence '{item.item_id}' references Claim ID '{doc_claim_id}', "
+                        f"Evidence '{item.item_id}' references Claim ID '{raw_doc_claim_id}', "
                         f"which conflicts with current Claim ID '{claim.claim_id}'."
                     ),
                     confidence=0.95
@@ -111,13 +127,16 @@ def compute_image_text_similarity(image_bytes: bytes, text_query: str) -> Tuple[
         # Open image
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         
-        # Tokenize and process
+        # Tokenize and process with processor-level truncation to CLIP's 77 token limit
         inputs = detector.processor(
-            text=[text_query.strip()[:77]],  # CLIP token limit
+            text=[text_query.strip()],
             images=image,
             return_tensors="pt",
-            padding=True
+            padding=True,
+            truncation=True,
+            max_length=77
         ).to(detector.device)
+
 
         import torch
         with torch.no_grad():

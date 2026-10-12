@@ -200,3 +200,115 @@ def test_negative_claimed_amount():
     assert len(signals) == 1
     assert signals[0].name == "AMOUNT_NEGATIVE"
     assert signals[0].severity == "HIGH"
+
+
+def test_ambiguous_slash_separated_date():
+    # 03/04/2026 can be either March 4 or April 3 -> should emit DATE_FORMAT_AMBIGUOUS (LOW severity)
+    claim = Claim(
+        claim_id="CLM-3001",
+        incident_date="03/04/2026",
+        claim_date="2026-05-01",
+        evidence_items=[
+            EvidenceItem(
+                item_id="DOC-1",
+                evidence_type="INVOICE",
+                extracted_date="05/06/2026",  # May 6 or June 5 -> ambiguous
+            )
+        ]
+    )
+    signals = check_date_consistency(claim)
+    names = [s.name for s in signals]
+    assert "DATE_FORMAT_AMBIGUOUS" in names
+    assert "EVIDENCE_DATE_AMBIGUOUS" in names
+    ambig_signal = next(s for s in signals if s.name == "DATE_FORMAT_AMBIGUOUS")
+    assert ambig_signal.severity == "LOW"
+    assert "ambiguous" in ambig_signal.message.lower()
+
+
+def test_unambiguous_slash_separated_date():
+    # 25/04/2026 has day 25 (> 12), so only DD/MM/YYYY is valid -> unambiguous
+    claim = Claim(
+        claim_id="CLM-3002",
+        incident_date="25/04/2026",
+        claim_date="2026-05-01",
+    )
+    signals = check_date_consistency(claim)
+    # Should be parsed cleanly with no ambiguity or invalid signals
+    assert len(signals) == 0
+
+
+def test_unambiguous_iso_date():
+    # 2026-03-04 is standard ISO unambiguous format
+    claim = Claim(
+        claim_id="CLM-3003",
+        incident_date="2026-03-04",
+        claim_date="2026-04-01",
+    )
+    signals = check_date_consistency(claim)
+    assert len(signals) == 0
+
+
+def test_unicode_digit_date_handling():
+    # Non-ASCII digits like Arabic-Indic or Persian digits should produce DATE_FORMAT_INVALID rather than unhandled exception
+    claim = Claim(
+        claim_id="CLM-3004",
+        incident_date="١٢/٠٤/٢٠٢٦",  # Unicode arabic-indic digits
+        claim_date="2026-05-01",
+    )
+    signals = check_date_consistency(claim)
+    assert any(s.name == "DATE_FORMAT_INVALID" for s in signals)
+
+
+
+def test_non_finite_amounts_rejected():
+    import math
+
+    # Test string representations: 'NaN', 'Infinity', '-Infinity'
+    claim_str_nan = Claim(claim_id="CLM-4001", claimed_amount="NaN")
+    signals = check_amount_consistency(claim_str_nan)
+    assert any(s.name == "AMOUNT_FORMAT_INVALID" for s in signals)
+
+    claim_str_inf = Claim(claim_id="CLM-4002", claimed_amount="Infinity")
+    signals = check_amount_consistency(claim_str_inf)
+    assert any(s.name == "AMOUNT_FORMAT_INVALID" for s in signals)
+
+    claim_str_neginf = Claim(claim_id="CLM-4003", claimed_amount="-Infinity")
+    signals = check_amount_consistency(claim_str_neginf)
+    assert any(s.name == "AMOUNT_FORMAT_INVALID" for s in signals)
+
+    # Test Decimal object inputs
+    claim_dec_nan = Claim(claim_id="CLM-4004", claimed_amount=Decimal("NaN"))
+    signals = check_amount_consistency(claim_dec_nan)
+    assert any(s.name == "AMOUNT_FORMAT_INVALID" for s in signals)
+
+    claim_dec_inf = Claim(claim_id="CLM-4005", claimed_amount=Decimal("Infinity"))
+    signals = check_amount_consistency(claim_dec_inf)
+    assert any(s.name == "AMOUNT_FORMAT_INVALID" for s in signals)
+
+    claim_dec_neginf = Claim(claim_id="CLM-4006", claimed_amount=Decimal("-Infinity"))
+    signals = check_amount_consistency(claim_dec_neginf)
+    assert any(s.name == "AMOUNT_FORMAT_INVALID" for s in signals)
+
+    # Test floating-point inf and nan
+    claim_float_nan = Claim(claim_id="CLM-4007", claimed_amount=float("nan"))
+    signals = check_amount_consistency(claim_float_nan)
+    assert any(s.name == "AMOUNT_FORMAT_INVALID" for s in signals)
+
+    claim_float_inf = Claim(claim_id="CLM-4008", claimed_amount=float("inf"))
+    signals = check_amount_consistency(claim_float_inf)
+    assert any(s.name == "AMOUNT_FORMAT_INVALID" for s in signals)
+
+    # Test non-finite in evidence items
+    claim_evidence_nan = Claim(
+        claim_id="CLM-4009",
+        claimed_amount=100.0,
+        evidence_items=[
+            EvidenceItem(
+                item_id="EV-1",
+                evidence_type="INVOICE",
+                extracted_amount="NaN",
+            )
+        ]
+    )
+    signals = check_amount_consistency(claim_evidence_nan)
+    assert any(s.name == "EVIDENCE_AMOUNT_INVALID" for s in signals)

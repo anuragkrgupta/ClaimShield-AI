@@ -36,7 +36,7 @@ Open your browser at `http://localhost:8501`. Upload an image (JPG, JPEG, PNG) a
 ### Automated Unit Tests
 To run the automated test suite (isolated to ClaimShield tests):
 ```bash
-python -m pytest tests/test_claim_consistency.py tests/test_pipeline.py
+python -m pytest tests/
 ```
 *(Tests cover claim consistency checks, mocked detector responses, and risk score calculation logic).*
 

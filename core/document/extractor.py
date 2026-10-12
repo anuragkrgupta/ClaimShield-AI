@@ -77,17 +77,27 @@ def _extract_dates_from_text(text: str) -> List[str]:
 
 def _extract_amounts_from_text(text: str) -> List[str]:
     """Extracts monetary amounts from text."""
-    # Matches currency symbols and numbers: $1,250.00, EUR 500, Rs. 1000, Total: 450.00
-    amount_patterns = [
-        r"[\$€£₹]\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?",
-        r"\b(?:USD|EUR|GBP|INR|CAD|AUD)\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\b",
-        r"(?:total|amount|subtotal|balance|due|paid|fee)[\s:]*[\$€£₹]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\b",
+    # Matches currency symbols and labels with numbers: $1,250.00, $1250.00, EUR 500, Rs. 1000, Total: 450.00, Total: 1250.00
+    # Enforces that the complete numeric token is valid; malformed numbers (e.g. $1250.001 with extra decimal digits
+    # or $1,25.00 with invalid grouping) are completely rejected rather than partially matched.
+    valid_num_pattern = re.compile(r"^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?$")
+
+    candidate_patterns = [
+        r"([\$€£₹]\s*)([0-9]+(?:,[0-9]+)*(?:\.[0-9]+)?)(?![0-9A-Za-z]|[\.,][0-9])",
+        r"(\b(?:USD|EUR|GBP|INR|CAD|AUD)\s*)([0-9]+(?:,[0-9]+)*(?:\.[0-9]+)?)(?![0-9A-Za-z]|[\.,][0-9])",
+        r"((?<![A-Za-z0-9_-])(?:total|amount|subtotal|balance|due|paid|fee)[\s:]*[\$€£₹]?\s*)([0-9]+(?:,[0-9]+)*(?:\.[0-9]+)?)(?![0-9A-Za-z]|[\.,][0-9])",
     ]
+
     found = []
-    for pattern in amount_patterns:
+    for pattern in candidate_patterns:
         for match in re.finditer(pattern, text, re.IGNORECASE):
-            amt = match.group(0).strip()
-            found.append(amt)
+            full_match = match.group(0).strip()
+            num_str = match.group(2).strip()
+            # If the complete numeric token matches standard grouped or ungrouped amount format
+            if valid_num_pattern.match(num_str):
+                found.append(full_match)
+
+
     # Deduplicate
     seen = set()
     result = []
@@ -96,6 +106,8 @@ def _extract_amounts_from_text(text: str) -> List[str]:
             seen.add(a)
             result.append(a)
     return result
+
+
 
 
 def _extract_identifiers_from_text(text: str) -> List[str]:
@@ -136,7 +148,7 @@ def extract_document(file_bytes: bytes, filename: Optional[str] = None) -> Tuple
 
 
 def _extract_from_pdf(pdf_bytes: bytes) -> Tuple[Optional[ExtractedDocument], bool]:
-    """Extracts text and metadata from a PDF file using PyMuPDF."""
+    """Extracts text and metadata from a PDF file using PyMuPDF and per-page OCR fallback."""
     if not PYMUPDF_AVAILABLE:
         logger.error("PyMuPDF / fitz is not installed; cannot process PDF.")
         return None, False
@@ -153,25 +165,19 @@ def _extract_from_pdf(pdf_bytes: bytes) -> Tuple[Optional[ExtractedDocument], bo
         for page_idx in range(page_count):
             page = doc[page_idx]
             page_text = page.get_text()
-            if page_text:
-                full_text_list.append(page_text)
-
-        full_text = "\n".join(full_text_list).strip()
-
-        # If PDF has no text layer (e.g. scanned image PDF), OCR pages if pytesseract available
-        if not full_text and PYTESSERACT_AVAILABLE:
-            ocr_text_list = []
-            for page_idx in range(min(page_count, 3)):  # limit to first 3 pages
-                page = doc[page_idx]
-                pix = page.get_pixmap()
-                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            if page_text and page_text.strip():
+                full_text_list.append(page_text.strip())
+            elif PYTESSERACT_AVAILABLE and page_idx < 5:  # OCR fallback per page if digital text layer is empty
                 try:
+                    pix = page.get_pixmap()
+                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                     ocr_page = pytesseract.image_to_string(img)
-                    if ocr_page.strip():
-                        ocr_text_list.append(ocr_page.strip())
+                    if ocr_page and ocr_page.strip():
+                        full_text_list.append(ocr_page.strip())
                 except Exception as e:
                     logger.warning(f"OCR failed on PDF page {page_idx}: {e}")
-            full_text = "\n".join(ocr_text_list).strip()
+
+        full_text = "\n".join(full_text_list).strip()
 
         meta_dict = doc.metadata or {}
         metadata = DocumentMetadata(
@@ -224,9 +230,13 @@ def _extract_from_image(image_bytes: bytes) -> Tuple[Optional[ExtractedDocument]
         if hasattr(img, "_getexif") and img._getexif():
             exif_data = {str(k): str(v) for k, v in img._getexif().items()}
 
+        software_tag = exif_data.get("305") or exif_data.get("Software")
+
         metadata = DocumentMetadata(
             format=img.format or "IMAGE",
             page_count=1,
+            producer=software_tag,
+            creator=software_tag,
             creation_date=exif_data.get("36867") or exif_data.get("DateTimeOriginal"),
             mod_date=exif_data.get("306") or exif_data.get("DateTime"),
             metadata_raw=exif_data,

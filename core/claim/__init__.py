@@ -16,6 +16,14 @@ from core.claim.cross_evidence import (
     RelationshipStatus,
 )
 
+from core.claim.adapter import (
+    document_to_evidence_item,
+    document_file_to_evidence_item,
+    resolve_document_date,
+    resolve_document_amount,
+    analyze_claim,
+)
+
 __all__ = [
     "Claim",
     "EvidenceItem",
@@ -27,5 +35,10 @@ __all__ = [
     "check_cross_evidence_dates_and_amounts",
     "compute_image_text_similarity",
     "RelationshipStatus",
+    "document_to_evidence_item",
+    "document_file_to_evidence_item",
+    "resolve_document_date",
+    "resolve_document_amount",
+    "analyze_claim",
 ]
 

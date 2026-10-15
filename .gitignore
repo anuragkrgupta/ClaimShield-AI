@@ -26,3 +26,6 @@ VerifAI_Ref/
 # OS-specific metadata
 .DS_Store
 Thumbs.db
+
+# Large evaluation datasets
+SYNDCAR/

@@ -6,6 +6,7 @@ from datetime import date
 from decimal import Decimal
 import fitz
 
+from core.types import Signal
 from core.claim.models import Claim, EvidenceItem
 from core.document.extractor import (
     DocumentMetadata,
@@ -273,3 +274,226 @@ def test_analyze_claim_with_multiple_candidate_dates_and_amounts():
     # And because date and amount were safely set to None, no false amount mismatch was triggered
     assert "AMOUNT_EXCEEDS_SUPPORTING_EVIDENCE" not in signal_names
     assert "AMOUNT_LESS_THAN_SUPPORTING_EVIDENCE" not in signal_names
+
+
+def test_claim_id_extraction_misleading_headings_rejected():
+    """Verify misleading headings are not misidentified as claim IDs and do not cause false mismatches."""
+    misleading_headings = [
+        "Claim Type: Motor Collision",
+        "Claim Details: Front windshield crack",
+        "Claim Status: Pending Assessment",
+        "Claim Form: Comprehensive",
+        "Claim Policy: POL-9988",
+    ]
+
+    for heading in misleading_headings:
+        doc = ExtractedDocument(
+            text=f"Official Form Header\n{heading}\nTotal Amount: $500.00\nDate: 2026-05-12",
+            metadata=DocumentMetadata(format="PDF"),
+            dates=["2026-05-12"],
+            amounts=["$500.00"],
+        )
+
+        item = document_to_evidence_item(doc, item_id="DOC-HDG")
+
+        # Must NOT extract ordinary heading as a claim ID
+        assert item.metadata.get("claim_id") is None, f"Heading '{heading}' was falsely extracted as claim_id '{item.metadata.get('claim_id')}'"
+
+        # Verify no false-positive CROSS_EVIDENCE_CLAIM_ID_MISMATCH is emitted
+        claim = Claim(
+            claim_id="CLM-1001",
+            incident_date="2026-05-10",
+            claim_date="2026-05-15",
+            claimed_amount=500.00,
+            evidence_items=[item],
+        )
+
+        signals = analyze_claim(claim)
+        signal_names = [s.name for s in signals]
+        assert "CROSS_EVIDENCE_CLAIM_ID_MISMATCH" not in signal_names, f"Heading '{heading}' produced spurious claim ID mismatch!"
+
+
+def test_claim_id_extraction_valid_explicit_formats():
+    """Verify explicit claim-identifier labels are correctly extracted."""
+    supported_formats = [
+        ("Claim ID: CLM-7788", "CLM-7788"),
+        ("Claim Number: CLM-7788", "CLM-7788"),
+        ("Claim No: CLM-7788", "CLM-7788"),
+        ("Claim No.: CLM-7788", "CLM-7788"),
+        ("Claim Reference: CLM-7788", "CLM-7788"),
+        ("Claim Ref: CLM-7788", "CLM-7788"),
+        ("Claim #CLM-7788", "CLM-7788"),
+        ("Claim# CLM-7788", "CLM-7788"),
+        ("Claim Num: CLM-7788", "CLM-7788"),
+        ("Claim ID# CLM-7788", "CLM-7788"),
+        ("Claim ID: 100234", "100234"),
+        ("Claim Number: 987654", "987654"),
+        ("Claim No: C-4455", "C-4455"),
+        ("Claim #99001", "99001"),
+    ]
+
+    for text_sample, expected_id in supported_formats:
+        doc = ExtractedDocument(
+            text=f"Supporting Documentation\n{text_sample}\nDate: 2026-05-12",
+            metadata=DocumentMetadata(format="PDF"),
+            dates=["2026-05-12"],
+        )
+
+        item = document_to_evidence_item(doc, item_id="DOC-VAL")
+        assert item.metadata.get("claim_id") == expected_id, f"Failed to extract '{expected_id}' from '{text_sample}'"
+
+        # When evaluated against conflicting claim, correctly flags mismatch
+        claim_conflicting = Claim(
+            claim_id="CLM-1001",
+            incident_date="2026-05-10",
+            claim_date="2026-05-15",
+            evidence_items=[item],
+        )
+        signals = analyze_claim(claim_conflicting)
+        assert any(s.name == "CROSS_EVIDENCE_CLAIM_ID_MISMATCH" for s in signals)
+
+
+def test_claim_id_extraction_rejects_unrelated_identifiers():
+    """Verify policy numbers, invoice numbers, and unrelated IDs are not mistaken for claim IDs."""
+    unrelated_samples = [
+        "Policy Number: POL-9988",
+        "Policy No: POL-9988",
+        "Invoice Number: INV-1234",
+        "Receipt ID: REC-5544",
+        "Estimate Number: EST-6677",
+        "Claim Reference: POL-9988",  # Policy number following Claim Reference
+        "Claim Ref: INV-9988",        # Invoice number following Claim Ref
+        "Claim Reference: REC-8899",  # Receipt number following Claim Reference
+        "Claim Number: POLICY-1234",  # Policy prefix following Claim Number
+    ]
+
+    for sample in unrelated_samples:
+        doc = ExtractedDocument(
+            text=f"Document Header\n{sample}\nDate: 2026-05-12",
+            metadata=DocumentMetadata(format="PDF"),
+            dates=["2026-05-12"],
+        )
+
+        item = document_to_evidence_item(doc, item_id="DOC-UNRELATED")
+        assert item.metadata.get("claim_id") is None, f"Unrelated identifier '{sample}' was mistaken for claim_id '{item.metadata.get('claim_id')}'"
+
+
+def test_claim_id_extraction_ordinary_heading_followed_by_genuine_claim_id():
+    """Verify an ordinary heading followed by a genuine claim ID later in the same document extracts the valid ID."""
+    headings = [
+        "Claim Type: Comprehensive Collision",
+        "Claim Details: Driver side door damage",
+        "Claim Status: Pending Assessment",
+        "Claim Form: Motor Vehicle Loss",
+        "Claim Policy: POL-9988",
+    ]
+
+    for heading in headings:
+        doc = ExtractedDocument(
+            text=(
+                f"Incident Report\n"
+                f"{heading}\n"
+                f"Incident Date: 2026-05-10\n"
+                f"Claim Number: CLM-7788\n"
+                f"Total Claimed: $1,200.00"
+            ),
+            metadata=DocumentMetadata(format="PDF"),
+            dates=["2026-05-10"],
+            amounts=["$1,200.00"],
+        )
+
+        item = document_to_evidence_item(doc, item_id="DOC-HEAD-VALID")
+        assert item.metadata.get("claim_id") == "CLM-7788", (
+            f"Failed to extract genuine claim ID 'CLM-7788' when preceded by heading '{heading}'. Got: '{item.metadata.get('claim_id')}'"
+        )
+
+
+def test_claim_id_extraction_rejects_ordinary_words():
+    """Verify ordinary words following explicit claim labels without digits or claim markers are rejected."""
+    word_samples = [
+        "Claim Reference: Pending Assessment",
+        "Claim Reference: Under Review",
+        "Claim Reference: General Damage",
+        "Claim ID: Approved",
+        "Claim Number: Unassigned",
+        "Claim Ref: Comprehensive",
+    ]
+
+    for sample in word_samples:
+        doc = ExtractedDocument(
+            text=f"Supporting Documentation\n{sample}\nDate: 2026-05-12",
+            metadata=DocumentMetadata(format="PDF"),
+            dates=["2026-05-12"],
+        )
+        item = document_to_evidence_item(doc, item_id="DOC-WORD")
+        assert item.metadata.get("claim_id") is None, f"Ordinary word in '{sample}' was falsely extracted as claim_id '{item.metadata.get('claim_id')}'"
+
+
+def test_claim_id_extraction_iterates_past_earlier_false_matches():
+    """Verify earlier false matches (words, policy numbers, invoices) do not hide a later valid claim ID."""
+    doc = ExtractedDocument(
+        text=(
+            "Claim Form Summary\n"
+            "Claim Reference: Pending Assessment\n"
+            "Claim Reference: POL-9988\n"
+            "Claim Ref: INV-1234\n"
+            "Claim Number: CLM-3344\n"
+            "Date: 2026-05-12"
+        ),
+        metadata=DocumentMetadata(format="PDF"),
+        dates=["2026-05-12"],
+    )
+
+    item = document_to_evidence_item(doc, item_id="DOC-MULTI-MATCH")
+    assert item.metadata.get("claim_id") == "CLM-3344", f"Expected 'CLM-3344' but got '{item.metadata.get('claim_id')}'"
+
+
+def test_claim_id_extraction_marker_prefix_formats():
+    """Verify claim marker formats like 'Claim: CLM-8899' and 'Claim: CLAIM-7766' are extracted."""
+    marker_samples = [
+        ("Claim: CLM-8899", "CLM-8899"),
+        ("Claim - CLM-8899", "CLM-8899"),
+        ("Claim: CLAIM-7766", "CLAIM-7766"),
+    ]
+
+    for sample, expected in marker_samples:
+        doc = ExtractedDocument(
+            text=f"Header\n{sample}\nDate: 2026-05-12",
+            metadata=DocumentMetadata(format="PDF"),
+            dates=["2026-05-12"],
+        )
+        item = document_to_evidence_item(doc, item_id="DOC-MARKER")
+        assert item.metadata.get("claim_id") == expected, f"Failed to extract '{expected}' from '{sample}'"
+
+
+def test_analyze_claim_hardened_document_signals():
+    """Verify analyze_claim handles None, non-iterables, single signals, and normal collections without TypeError."""
+    doc = ExtractedDocument(
+        text="Sample Document Text",
+        metadata=DocumentMetadata(format="PDF"),
+    )
+
+    # 1. Test metadata_overrides with None
+    item_none = document_to_evidence_item(doc, item_id="D-NONE", metadata_overrides={"document_signals": None})
+    claim_none = Claim(claim_id="CLM-100", evidence_items=[item_none])
+    signals_none = analyze_claim(claim_none)
+    assert isinstance(signals_none, list)
+
+    # 2. Test metadata_overrides with unsupported non-iterable string
+    item_str = document_to_evidence_item(doc, item_id="D-STR", metadata_overrides={"document_signals": "not-a-signal-list"})
+    claim_str = Claim(claim_id="CLM-100", evidence_items=[item_str])
+    signals_str = analyze_claim(claim_str)
+    assert isinstance(signals_str, list)
+
+    # 3. Test metadata_overrides with unsupported integer
+    item_int = document_to_evidence_item(doc, item_id="D-INT", metadata_overrides={"document_signals": 12345})
+    claim_int = Claim(claim_id="CLM-100", evidence_items=[item_int])
+    signals_int = analyze_claim(claim_int)
+    assert isinstance(signals_int, list)
+
+    # 4. Test metadata_overrides with a single Signal object
+    single_signal = Signal(name="CUSTOM_TAMPER_FLAG", severity="MEDIUM", score=50, message="Custom tamper finding")
+    item_single = document_to_evidence_item(doc, item_id="D-SIG", metadata_overrides={"document_signals": single_signal})
+    claim_single = Claim(claim_id="CLM-100", evidence_items=[item_single])
+    signals_single = analyze_claim(claim_single)
+    assert any(s.name == "CUSTOM_TAMPER_FLAG" for s in signals_single)

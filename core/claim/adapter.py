@@ -170,17 +170,47 @@ def document_to_evidence_item(
     if doc.metadata.metadata_raw and "claim_id" in doc.metadata.metadata_raw:
         raw_val = doc.metadata.metadata_raw["claim_id"]
         if raw_val is not None and not isinstance(raw_val, bool):
-            claim_id = str(raw_val).strip()
-    elif doc.text:
-        match = re.search(
-            r"\bclaim\s*(?:#|no\.?|num|number|id)?\s*[:\-]?\s*([A-Za-z0-9\-_/]{4,25})\b",
-            doc.text,
-            re.IGNORECASE,
+            candidate = str(raw_val).strip()
+            cand_lower = candidate.lower()
+            cand_upper = candidate.upper()
+            has_digit = any(c.isdigit() for c in candidate)
+            has_marker = cand_upper.startswith(("CLM-", "CLAIM-", "CLM_", "CLAIM_"))
+            if (
+                candidate
+                and cand_lower not in {"none", "null", "false", "pending", "unknown"}
+                and not cand_upper.startswith(("POL-", "POLICY", "INV-", "INVOICE", "REC-", "RECEIPT", "EST-", "ESTIMATE"))
+                and (has_digit or has_marker)
+            ):
+                claim_id = candidate
+
+    if not claim_id and doc.text:
+        # Require an explicit claim-identifier label or claim marker, and require either an explicit
+        # claim marker (e.g. CLM-, CLAIM-) or a captured value containing at least one digit.
+        # Headings like 'Claim Type:', 'Claim Details:', 'Claim Status:' or policy/invoice numbers must not match.
+        pattern = (
+            r"\bclaim\s*(?:#|(?:id|number|num|reference|ref|no)\b\.?)\s*[:\-#]?\s*"
+            r"((?=[A-Za-z0-9\-_/]{3,30}\b)(?:(?:CLM|CLAIM)[\-_][A-Za-z0-9\-_/]+|[A-Za-z0-9\-_/]*\d[A-Za-z0-9\-_/]*))\b"
+            r"|\bclaim\s*[:\-]?\s*((?:CLM|CLAIM)[\-_][A-Za-z0-9\-_/]{2,30})\b"
         )
-        if match:
-            val = match.group(1).strip()
-            if val.lower() not in {"number", "date", "amount", "total", "invoice", "receipt", "claim"}:
-                claim_id = val
+        for match in re.finditer(pattern, doc.text, re.IGNORECASE):
+            val = (match.group(1) or match.group(2) or "").strip()
+            if not val:
+                continue
+            val_lower = val.lower()
+            val_upper = val.upper()
+            if (
+                val_lower in {"number", "date", "amount", "total", "invoice", "receipt", "claim", "policy", "reference", "none", "null", "pending", "unknown"}
+                or val_upper.startswith(("POL-", "POLICY", "INV-", "INVOICE", "REC-", "RECEIPT", "EST-", "ESTIMATE"))
+            ):
+                continue
+
+            has_digit = any(c.isdigit() for c in val)
+            has_claim_marker = val_upper.startswith(("CLM-", "CLAIM-", "CLM_", "CLAIM_"))
+            if not (has_digit or has_claim_marker):
+                continue
+
+            claim_id = val
+            break
 
     if claim_id:
         meta["claim_id"] = claim_id
@@ -256,8 +286,15 @@ def analyze_claim(claim: Claim) -> List[Signal]:
         meta = item.metadata or {}
         # Document tampering & authenticity signals
         if "document_signals" in meta:
-            signals.extend(meta["document_signals"])
-        elif "extracted_document" in meta:
+            doc_signals = meta["document_signals"]
+            if isinstance(doc_signals, (list, tuple)):
+                for s in doc_signals:
+                    if isinstance(s, Signal):
+                        signals.append(s)
+            elif isinstance(doc_signals, Signal):
+                signals.append(doc_signals)
+            # If doc_signals is None or another unsupported value, do nothing safely
+        elif "extracted_document" in meta and isinstance(meta["extracted_document"], ExtractedDocument):
             doc = meta["extracted_document"]
             signals.extend(check_document_tampering(doc))
             signals.extend(check_document_authenticity(doc))
